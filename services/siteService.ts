@@ -88,6 +88,8 @@ export const loadUserSite = async (userId: string): Promise<SiteInstance | null>
       phone: data.phone || '',
       brandColor: data.brand_colour || '#2563eb',
     },
+    deployedUrl: data.deployed_url || undefined,
+    deploymentStatus: data.deployment_status || 'draft',
   };
 };
 
@@ -175,5 +177,7 @@ export const getSitesByUser = async (userId: string): Promise<SiteInstance[]> =>
       phone: row.phone || '',
       brandColor: row.brand_colour || '#2563eb',
     },
+    deployedUrl: row.deployed_url || undefined,
+    deploymentStatus: row.deployment_status || 'draft',
   }));
 };

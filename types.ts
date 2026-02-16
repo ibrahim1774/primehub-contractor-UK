@@ -78,6 +78,8 @@ export interface SiteInstance {
   data: GeneratedSiteData;
   lastSaved: number;
   formInputs?: GeneratorInputs;
+  deployedUrl?: string;
+  deploymentStatus?: string;
 }
 
 export interface GeneratorInputs {

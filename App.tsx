@@ -3,12 +3,13 @@ import React, { useState, useCallback, useRef } from 'react';
 import GeneratorForm from './components/GeneratorForm.js';
 import SiteRenderer from './components/SiteRenderer.js';
 import LoadingIndicator from './components/LoadingIndicator.js';
+import Dashboard from './components/Dashboard.js';
 import { generateSiteContent } from './services/geminiService.js';
 import { saveSiteInstance, getAllSites } from './services/storageService.js';
 import { deploySite } from './services/deploymentService.js';
 import { saveSite, updateSiteContent, loadUserSite, loadLocalSite, migrateLocalToSupabase, updateDeployment } from './services/siteService.js';
 import { GeneratorInputs, GeneratedSiteData, SiteInstance } from './types.js';
-import { ChevronLeft, CloudCheck, Loader2, Rocket, ExternalLink, User as UserIcon, CloudUpload, X } from 'lucide-react';
+import { ChevronLeft, CloudCheck, Loader2, Rocket, ExternalLink, User as UserIcon, CloudUpload, X, Save } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext.js';
 import AuthModal from './components/AuthModal.js';
 
@@ -30,6 +31,7 @@ const BannerText: React.FC<{
 };
 
 const App: React.FC = () => {
+  const [currentView, setCurrentView] = useState<'generator' | 'dashboard' | 'editor'>('generator');
   const [isLoading, setIsLoading] = useState(false);
   const [activeSite, setActiveSite] = useState<SiteInstance | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -37,12 +39,14 @@ const App: React.FC = () => {
   const [deploymentUrl, setDeploymentUrl] = useState<string>('');
   const [deploymentMessage, setDeploymentMessage] = useState<string>('');
   const saveTimeoutRef = useRef<any>(null);
-  const { isAuthenticated, isLoading: authLoading, user, signOut: authSignOut } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user, profile, signOut: authSignOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeFormInputs, setActiveFormInputs] = useState<GeneratorInputs | null>(null);
   const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
   const [pendingMigrationSite, setPendingMigrationSite] = useState<SiteInstance | null>(null);
   const [appReady, setAppReady] = useState(false);
+
+  const hasPaid = activeSite?.deploymentStatus === 'deployed';
 
   // On-mount: load saved site from Supabase (if auth'd) or IndexedDB
   React.useEffect(() => {
@@ -56,6 +60,7 @@ const App: React.FC = () => {
           if (cloudSite) {
             setActiveSite(cloudSite);
             if (cloudSite.formInputs) setActiveFormInputs(cloudSite.formInputs);
+            setCurrentView('dashboard');
             setAppReady(true);
             return;
           }
@@ -107,6 +112,7 @@ const App: React.FC = () => {
           }),
         }).catch(err => console.error('[FB CAPI] Client-side call failed:', err));
 
+        setCurrentView('editor');
         setDeploymentStatus('deploying');
         setDeploymentMessage('Payment Verified! Starting automated deployment...');
 
@@ -143,10 +149,11 @@ const App: React.FC = () => {
           setDeploymentUrl(finalUrl);
           setDeploymentMessage('Success! Your site is live.');
 
-          // Save deployment info to Supabase
+          // Save deployment info to Supabase + update local state
           if (user) {
             updateDeployment(latestSite.id, user.id, finalUrl);
           }
+          setActiveSite(prev => prev ? { ...prev, deployedUrl: finalUrl, deploymentStatus: 'deployed' } : prev);
 
           // Auto-open
           setTimeout(() => {
@@ -188,6 +195,7 @@ const App: React.FC = () => {
       };
       setActiveSite(instance);
       setActiveFormInputs(newInputs);
+      setCurrentView('editor');
       await saveSite(instance, newInputs, user?.id ?? null);
     } catch (error: any) {
       console.error("Generation failed:", error);
@@ -223,12 +231,84 @@ const App: React.FC = () => {
     }, 600);
   }, [activeSite, user]);
 
-  const reset = useCallback(() => {
-    if (confirm("Go back to generator? Your current site is saved locally.")) {
-      setActiveSite(null);
-      setActiveFormInputs(null);
+  const handleBackFromEditor = useCallback(() => {
+    if (isAuthenticated && activeSite) {
+      setCurrentView('dashboard');
+    } else {
+      if (confirm("Go back to generator? Your current site is saved locally.")) {
+        setActiveSite(null);
+        setActiveFormInputs(null);
+        setCurrentView('generator');
+      }
     }
-  }, []);
+  }, [isAuthenticated, activeSite]);
+
+  const handleManualSave = useCallback(async () => {
+    if (!activeSite) return;
+    setSaveStatus('saving');
+    try {
+      if (activeFormInputs) {
+        await saveSite(activeSite, activeFormInputs, user?.id ?? null);
+      } else {
+        await saveSiteInstance(activeSite);
+      }
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 1500);
+    } catch (err) {
+      console.error("Manual save failed:", err);
+      setSaveStatus('idle');
+    }
+  }, [activeSite, activeFormInputs, user]);
+
+  const handlePublish = async () => {
+    if (!activeSite) return;
+
+    // Save first
+    setSaveStatus('saving');
+    if (activeFormInputs) {
+      await saveSite(activeSite, activeFormInputs, user?.id ?? null);
+    } else {
+      await saveSiteInstance(activeSite);
+    }
+    setSaveStatus('saved');
+
+    // Deploy without Stripe checkout
+    setDeploymentStatus('deploying');
+    setDeploymentMessage('Publishing your changes...');
+
+    try {
+      const { generateSlug } = await import('./services/urlService.js');
+      const projectName = generateSlug(activeSite.data.contact.companyName);
+
+      setDeploymentMessage('Building and deploying your site to Vercel...');
+      await deploySite(activeSite.data, projectName);
+
+      // Countdown
+      for (let i = 10; i > 0; i--) {
+        setDeploymentMessage(`Deploying... ${i}s`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const finalUrl = `https://${projectName}.vercel.app`;
+      setDeploymentStatus('success');
+      setDeploymentUrl(finalUrl);
+      setDeploymentMessage('Success! Your changes are live.');
+
+      // Update Supabase + local state
+      if (user) {
+        updateDeployment(activeSite.id, user.id, finalUrl);
+      }
+      setActiveSite(prev => prev ? { ...prev, deployedUrl: finalUrl, deploymentStatus: 'deployed' } : prev);
+
+      setTimeout(() => {
+        window.open(finalUrl, '_blank');
+      }, 1000);
+    } catch (error: any) {
+      console.error("Publish failed:", error);
+      setDeploymentStatus('error');
+      setDeploymentMessage(error.message || 'Publishing failed. Please try again.');
+    }
+  };
 
   const handleMigrate = async (shouldSave: boolean) => {
     if (pendingMigrationSite) {
@@ -242,6 +322,10 @@ const App: React.FC = () => {
       setActiveSite(pendingMigrationSite);
       if (pendingMigrationSite.formInputs) {
         setActiveFormInputs(pendingMigrationSite.formInputs);
+      }
+      // If migrated and user is authenticated, go to dashboard
+      if (isAuthenticated) {
+        setCurrentView('dashboard');
       }
     }
     setShowMigrationPrompt(false);
@@ -283,7 +367,6 @@ const App: React.FC = () => {
           const { error } = await response.json();
           throw new Error(error || `Server returned ${response.status}`);
         } else {
-          // If not JSON, it might be a Vercel 404 HTML page
           throw new Error(`API error (${response.status}): The endpoint could not be found. If you just pushed changes, please wait a minute for Vercel to finish building.`);
         }
       }
@@ -301,14 +384,21 @@ const App: React.FC = () => {
       setDeploymentStatus('error');
       setDeploymentMessage(err.message || 'Failed to start payment process.');
     }
-
   };
 
   return (
     <div className="min-h-screen bg-[#05070A] font-light" style={{ fontFamily: '"Avenir Light", Avenir, sans-serif' }}>
-      {!activeSite && !isLoading && appReady && (
+      {/* Generator Form View */}
+      {currentView === 'generator' && !isLoading && appReady && (
         <div className="pt-4 md:pt-6 pb-20 px-6">
-          <div className="flex justify-end mb-2 px-0 max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-2 px-0 max-w-4xl mx-auto">
+            {isAuthenticated && profile?.full_name ? (
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-[0.2em]">
+                Welcome back, {profile.full_name.split(' ')[0]}
+              </p>
+            ) : (
+              <div />
+            )}
             {isAuthenticated ? (
               <button
                 onClick={authSignOut}
@@ -333,41 +423,107 @@ const App: React.FC = () => {
 
       {isLoading && <LoadingIndicator />}
 
-      {activeSite && (
-        <div className="flex flex-col min-h-screen">
-          {/* Sticky Editor Instruction Banner - Red */}
-          <div className="sticky top-0 z-[110] bg-red-600 text-white px-4 py-3 md:py-5 shadow-lg flex items-center justify-between min-h-[60px]">
-            <div className="flex items-center gap-1 md:gap-2 flex-1 min-w-0">
-              <button
-                onClick={reset}
-                className="p-1 hover:bg-white/10 rounded transition-colors shrink-0"
-                title="Back to Generator"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <BannerText
-                text="Tap text to edit or tap images to replace them, after done click deploy website below"
-              />
-            </div>
+      {/* Dashboard View */}
+      {currentView === 'dashboard' && activeSite && appReady && (
+        <Dashboard
+          site={activeSite}
+          profile={profile}
+          onEditSite={() => setCurrentView('editor')}
+          onPublish={handlePublish}
+          onSignOut={authSignOut}
+          onCreateNew={() => {
+            setActiveSite(null);
+            setActiveFormInputs(null);
+            setCurrentView('generator');
+          }}
+        />
+      )}
 
-            <div className="flex items-center gap-2 shrink-0 ml-2">
-              <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full border border-white/20 whitespace-nowrap">
-                {saveStatus === 'saving' ? (
-                  <span className="flex items-center gap-1 text-blue-100">
-                    <Loader2 size={12} className="animate-spin" /> Saving
-                  </span>
-                ) : saveStatus === 'saved' ? (
-                  <span className="flex items-center gap-1 text-green-300">
-                    <CloudCheck size={14} /> Saved
-                  </span>
-                ) : (
-                  <span className="opacity-80 uppercase">Editor</span>
-                )}
+      {/* Editor View */}
+      {currentView === 'editor' && activeSite && (
+        <div className="flex flex-col min-h-screen">
+          {/* Editor Top Bar */}
+          {hasPaid ? (
+            // Post-payment toolbar: Back to Dashboard, Save, Publish
+            <div className="sticky top-0 z-[110] bg-[#0D1117] text-white px-4 py-3 shadow-lg flex items-center justify-between min-h-[56px] border-b border-white/10">
+              <button
+                onClick={handleBackFromEditor}
+                className="flex items-center gap-1 text-gray-400 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors"
+              >
+                <ChevronLeft size={16} />
+                <span className="hidden md:inline">Back to Dashboard</span>
+                <span className="md:hidden">Back</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                {/* Save status */}
+                <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-full border border-white/10 whitespace-nowrap">
+                  {saveStatus === 'saving' ? (
+                    <span className="flex items-center gap-1 text-blue-300">
+                      <Loader2 size={12} className="animate-spin" /> Saving
+                    </span>
+                  ) : saveStatus === 'saved' ? (
+                    <span className="flex items-center gap-1 text-green-300">
+                      <CloudCheck size={14} /> Saved
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">Editor</span>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleManualSave}
+                  className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-colors border border-white/10"
+                >
+                  <Save size={12} />
+                  Save
+                </button>
+
+                <button
+                  onClick={handlePublish}
+                  disabled={deploymentStatus === 'deploying'}
+                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
+                >
+                  <Rocket size={12} />
+                  Publish
+                </button>
               </div>
             </div>
-          </div>
+          ) : (
+            // Pre-payment toolbar: Red banner with instructions
+            <div className="sticky top-0 z-[110] bg-red-600 text-white px-4 py-3 md:py-5 shadow-lg flex items-center justify-between min-h-[60px]">
+              <div className="flex items-center gap-1 md:gap-2 flex-1 min-w-0">
+                <button
+                  onClick={handleBackFromEditor}
+                  className="p-1 hover:bg-white/10 rounded transition-colors shrink-0"
+                  title="Back"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <BannerText
+                  text="Tap text to edit or tap images to replace them, after done click deploy website below"
+                />
+              </div>
 
-          <main className="bg-white pb-24">
+              <div className="flex items-center gap-2 shrink-0 ml-2">
+                <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full border border-white/20 whitespace-nowrap">
+                  {saveStatus === 'saving' ? (
+                    <span className="flex items-center gap-1 text-blue-100">
+                      <Loader2 size={12} className="animate-spin" /> Saving
+                    </span>
+                  ) : saveStatus === 'saved' ? (
+                    <span className="flex items-center gap-1 text-green-300">
+                      <CloudCheck size={14} /> Saved
+                    </span>
+                  ) : (
+                    <span className="opacity-80 uppercase">Editor</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <main className={`bg-white ${hasPaid ? 'pb-4' : 'pb-24'}`}>
             <SiteRenderer
               data={activeSite.data}
               isEditMode={true}
@@ -375,23 +531,26 @@ const App: React.FC = () => {
             />
           </main>
 
-          <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100 p-3 md:p-4 shadow-[0_-8px_20px_rgba(0,0,0,0.05)]">
-            <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-3">
-              <div className="text-center md:text-left">
-                <p className="text-gray-900 font-bold text-xs md:text-sm">
-                  PAY ONLY £10/MONTH WEBSITE HOSTING TO HAVE YOUR CUSTOM SITE LIVE & ACTIVE
-                </p>
+          {/* Bottom deploy bar — only for unpaid users */}
+          {!hasPaid && (
+            <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100 p-3 md:p-4 shadow-[0_-8px_20px_rgba(0,0,0,0.05)]">
+              <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-3">
+                <div className="text-center md:text-left">
+                  <p className="text-gray-900 font-bold text-xs md:text-sm">
+                    PAY ONLY £10/MONTH WEBSITE HOSTING TO HAVE YOUR CUSTOM SITE LIVE & ACTIVE
+                  </p>
+                </div>
+                <button
+                  onClick={handleDeploy}
+                  disabled={deploymentStatus === 'deploying'}
+                  className="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all uppercase tracking-tighter disabled:opacity-50"
+                >
+                  {deploymentStatus === 'deploying' ? <Loader2 className="animate-spin" size={18} /> : <Rocket size={18} />}
+                  Deploy Website
+                </button>
               </div>
-              <button
-                onClick={handleDeploy}
-                disabled={deploymentStatus === 'deploying'}
-                className="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all uppercase tracking-tighter disabled:opacity-50"
-              >
-                {deploymentStatus === 'deploying' ? <Loader2 className="animate-spin" size={18} /> : <Rocket size={18} />}
-                Deploy Website
-              </button>
             </div>
-          </div>
+          )}
 
           {/* Deployment Status Overlay */}
           {deploymentStatus !== 'idle' && (
@@ -428,10 +587,15 @@ const App: React.FC = () => {
                       </a>
                     </div>
                     <button
-                      onClick={() => setDeploymentStatus('idle')}
+                      onClick={() => {
+                        setDeploymentStatus('idle');
+                        if (isAuthenticated && activeSite) {
+                          setCurrentView('dashboard');
+                        }
+                      }}
                       className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
                     >
-                      Close
+                      {isAuthenticated ? 'Go to Dashboard' : 'Close'}
                     </button>
                   </div>
                 )}
