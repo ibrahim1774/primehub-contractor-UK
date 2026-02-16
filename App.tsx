@@ -9,7 +9,7 @@ import { saveSiteInstance, getAllSites } from './services/storageService.js';
 import { deploySite } from './services/deploymentService.js';
 import { saveSite, updateSiteContent, loadUserSite, loadLocalSite, migrateLocalToSupabase, updateDeployment } from './services/siteService.js';
 import { GeneratorInputs, GeneratedSiteData, SiteInstance } from './types.js';
-import { ChevronLeft, CloudCheck, Loader2, Rocket, ExternalLink, User as UserIcon, CloudUpload, X, Save } from 'lucide-react';
+import { ChevronLeft, CloudCheck, Loader2, Rocket, ExternalLink, User as UserIcon, Save } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext.js';
 import AuthModal from './components/AuthModal.js';
 
@@ -44,8 +44,7 @@ const App: React.FC = () => {
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
   const wasAuthenticated = useRef(false);
   const [activeFormInputs, setActiveFormInputs] = useState<GeneratorInputs | null>(null);
-  const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
-  const [pendingMigrationSite, setPendingMigrationSite] = useState<SiteInstance | null>(null);
+  const [authSignInOnly, setAuthSignInOnly] = useState(false);
   const [appReady, setAppReady] = useState(false);
   const [deploySource, setDeploySource] = useState<'payment' | 'publish' | null>(null);
 
@@ -68,11 +67,15 @@ const App: React.FC = () => {
             return;
           }
 
-          // No cloud site — check IndexedDB for migration
+          // No cloud site — check IndexedDB and auto-migrate silently
           const localSite = await loadLocalSite();
           if (localSite) {
-            setPendingMigrationSite(localSite);
-            setShowMigrationPrompt(true);
+            migrateLocalToSupabase(localSite, user.id).catch(err =>
+              console.error('Auto-migration failed:', err)
+            );
+            setActiveSite(localSite);
+            if (localSite.formInputs) setActiveFormInputs(localSite.formInputs);
+            setCurrentView('dashboard');
             setAppReady(true);
             return;
           }
@@ -333,28 +336,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleMigrate = async (shouldSave: boolean) => {
-    if (pendingMigrationSite) {
-      if (shouldSave && user) {
-        try {
-          await migrateLocalToSupabase(pendingMigrationSite, user.id);
-        } catch (err) {
-          console.error('Migration failed:', err);
-        }
-      }
-      setActiveSite(pendingMigrationSite);
-      if (pendingMigrationSite.formInputs) {
-        setActiveFormInputs(pendingMigrationSite.formInputs);
-      }
-      // If migrated and user is authenticated, go to dashboard
-      if (isAuthenticated) {
-        setCurrentView('dashboard');
-      }
-    }
-    setShowMigrationPrompt(false);
-    setPendingMigrationSite(null);
-  };
-
   const handleDeploy = async () => {
     if (!activeSite) return;
 
@@ -442,7 +423,7 @@ const App: React.FC = () => {
               </div>
             ) : (
               <button
-                onClick={() => { setAuthModalMode('signin'); setShowAuthModal(true); }}
+                onClick={() => { setAuthModalMode('signin'); setAuthSignInOnly(true); setShowAuthModal(true); }}
                 className="flex items-center gap-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors"
               >
                 <UserIcon size={14} />
@@ -461,8 +442,8 @@ const App: React.FC = () => {
         <Dashboard
           site={activeSite}
           profile={profile}
+          user={user}
           onEditSite={() => setCurrentView('editor')}
-          onPublish={handlePublish}
           onSignOut={authSignOut}
           onCreateNew={() => {
             setActiveSite(null);
@@ -629,6 +610,7 @@ const App: React.FC = () => {
                           onClick={() => {
                             setDeploymentStatus('idle');
                             setAuthModalMode('signup');
+                            setAuthSignInOnly(false);
                             setShowAuthModal(true);
                           }}
                           className="w-full bg-white text-black font-bold py-3 rounded-full hover:bg-gray-100 transition-all uppercase tracking-widest text-xs"
@@ -686,46 +668,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Migration Prompt */}
-      {showMigrationPrompt && (
-        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="bg-[#05070A] border border-white/10 p-8 rounded-3xl max-w-md w-full shadow-2xl relative">
-            <button
-              onClick={() => handleMigrate(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
-            <div className="flex flex-col items-center gap-6 text-center">
-              <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <CloudUpload className="text-blue-500" size={32} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">Website Found</h3>
-                <p className="text-gray-400 text-sm">
-                  We found a website you created earlier. Save it to your account so it's backed up in the cloud?
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 w-full">
-                <button
-                  onClick={() => handleMigrate(true)}
-                  className="w-full bg-white text-black font-bold py-3 rounded-full hover:bg-gray-100 transition-all uppercase tracking-widest text-xs"
-                >
-                  Save to Account
-                </button>
-                <button
-                  onClick={() => handleMigrate(false)}
-                  className="w-full bg-white/5 text-gray-400 font-bold py-3 rounded-full hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest text-xs"
-                >
-                  Continue Without Saving
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} defaultMode={authModalMode} />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} defaultMode={authModalMode} signInOnly={authSignInOnly} />
     </div>
   );
 };

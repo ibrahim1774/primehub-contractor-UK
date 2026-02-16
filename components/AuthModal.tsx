@@ -6,9 +6,10 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultMode?: 'signin' | 'signup';
+  signInOnly?: boolean;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 'signin' }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 'signin', signInOnly = false }) => {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>(defaultMode);
   const [email, setEmail] = useState('');
@@ -85,29 +86,31 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
             : 'Create an account to save and manage your sites.'}
         </p>
 
-        {/* Tab Switcher */}
-        <div className="flex mb-6 bg-white/5 rounded-full p-1">
-          <button
-            onClick={() => switchMode('signin')}
-            className={`flex-1 py-2 text-xs font-bold uppercase tracking-[0.2em] rounded-full transition-all ${
-              mode === 'signin'
-                ? 'bg-white text-black'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => switchMode('signup')}
-            className={`flex-1 py-2 text-xs font-bold uppercase tracking-[0.2em] rounded-full transition-all ${
-              mode === 'signup'
-                ? 'bg-white text-black'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Sign Up
-          </button>
-        </div>
+        {/* Tab Switcher — hidden when signInOnly */}
+        {!signInOnly && (
+          <div className="flex mb-6 bg-white/5 rounded-full p-1">
+            <button
+              onClick={() => switchMode('signin')}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-[0.2em] rounded-full transition-all ${
+                mode === 'signin'
+                  ? 'bg-white text-black'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => switchMode('signup')}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-[0.2em] rounded-full transition-all ${
+                mode === 'signup'
+                  ? 'bg-white text-black'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+        )}
 
         {/* Email/Password Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -178,16 +181,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 's
           </button>
         </form>
 
-        {/* Toggle Link */}
-        <p className="text-center text-gray-500 text-sm mt-4">
-          {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}{' '}
-          <button
-            onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
-            className="text-blue-500 hover:text-blue-400 font-bold transition-colors"
-          >
-            {mode === 'signin' ? 'Sign Up' : 'Sign In'}
-          </button>
-        </p>
+        {/* Toggle Link — hidden when signInOnly */}
+        {!signInOnly && (
+          <p className="text-center text-gray-500 text-sm mt-4">
+            {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}{' '}
+            <button
+              onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+              className="text-blue-500 hover:text-blue-400 font-bold transition-colors"
+            >
+              {mode === 'signin' ? 'Sign Up' : 'Sign In'}
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SiteInstance, UserProfile } from '../types.js';
+import { User } from '@supabase/supabase-js';
 import {
   Zap, ChevronDown, Pencil, LayoutGrid, ImageIcon, CreditCard,
   ExternalLink, Globe, CircleDot, Clock, Loader2
@@ -8,8 +9,8 @@ import {
 interface DashboardProps {
   site: SiteInstance;
   profile: UserProfile | null;
+  user: User | null;
   onEditSite: () => void;
-  onPublish: () => void;
   onSignOut: () => void;
   onCreateNew: () => void;
 }
@@ -26,14 +27,14 @@ const timeAgo = (timestamp: number): string => {
   return new Date(timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ site, profile, onEditSite, onPublish, onSignOut, onCreateNew }) => {
+const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, onSignOut, onCreateNew }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
 
   const isLive = site.deploymentStatus === 'deployed';
   const companyName = site.data.contact.companyName;
-  const userInitial = (profile?.full_name || profile?.email || 'U').charAt(0).toUpperCase();
-  const userName = profile?.full_name || profile?.email || 'User';
+  const userInitial = (profile?.full_name || (user?.user_metadata as any)?.full_name || profile?.email || 'U').charAt(0).toUpperCase();
+  const userName = profile?.full_name || (user?.user_metadata as any)?.full_name || profile?.email || 'User';
 
   const handleManageBilling = async () => {
     if (!profile?.stripe_customer_id) {
@@ -109,7 +110,7 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, onEditSite, onPubl
         {/* Welcome */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            Welcome back, {profile?.full_name?.split(' ')[0] || 'there'}
+            Welcome back, {profile?.full_name?.split(' ')[0] || (user?.user_metadata as any)?.full_name?.split(' ')[0] || 'there'}
           </h1>
           <p className="text-gray-500 mt-1">Manage your website and settings</p>
         </div>
@@ -175,12 +176,6 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, onEditSite, onPubl
                   className="bg-white text-black font-bold px-6 py-2.5 rounded-full text-xs uppercase tracking-widest hover:bg-gray-100 active:scale-95 transition-all"
                 >
                   Edit Website
-                </button>
-                <button
-                  onClick={onPublish}
-                  className="bg-white/5 text-gray-300 font-bold px-6 py-2.5 rounded-full text-xs uppercase tracking-widest hover:bg-white/10 hover:text-white active:scale-95 transition-all border border-white/10"
-                >
-                  Publish Changes
                 </button>
               </div>
             </div>
