@@ -423,13 +423,23 @@ const App: React.FC = () => {
               <div />
             )}
             {isAuthenticated ? (
-              <button
-                onClick={authSignOut}
-                className="flex items-center gap-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors"
-              >
-                <UserIcon size={14} />
-                Sign Out
-              </button>
+              <div className="flex items-center gap-3">
+                {activeSite && (
+                  <button
+                    onClick={() => setCurrentView('dashboard')}
+                    className="flex items-center gap-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors"
+                  >
+                    Go to Dashboard
+                  </button>
+                )}
+                <button
+                  onClick={authSignOut}
+                  className="flex items-center gap-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors"
+                >
+                  <UserIcon size={14} />
+                  Sign Out
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => { setAuthModalMode('signin'); setShowAuthModal(true); }}
