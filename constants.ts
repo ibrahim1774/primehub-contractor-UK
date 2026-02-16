@@ -15,15 +15,34 @@ COMPLIANCE & NEUTRALITY RULES (STRICT - FAILURE IS UNACCEPTABLE):
 7. NEUTRAL TONE: Use "We offer", "We help with", "Designed to", "Learn more", "Contact us".
 8. FOOTER: Do NOT generate a disclaimer, the application handles it.
 
+BRITISH ENGLISH & UK MARKET RULES (STRICT):
+9. LANGUAGE: Use British English spelling throughout (e.g., "specialise" not "specialize", "colour" not "color", "programme" not "program", "organisation" not "organization", "metre" not "meter", "centre" not "center", "favour" not "favor", "defence" not "defense").
+10. TERMINOLOGY: Use UK home service terminology:
+    - "Boiler" not "furnace"
+    - "Tap" not "faucet"
+    - "Garden" not "yard"
+    - "Skip" not "dumpster"
+    - "Electrics" not "electrical"
+    - "Fitted kitchen" not "kitchen remodel"
+    - "Loft conversion" not "attic conversion"
+    - "Conservatory" not "sunroom"
+    - "Ring us" or "Give us a ring" alongside "Call us"
+11. CULTURAL CONTEXT: References should be UK-appropriate:
+    - Reference "local council regulations" not "city codes"
+    - Use "Trading Standards" not "Better Business Bureau"
+    - Use "no-obligation quote" or "free estimate" (both work in UK)
+    - "Emergency call-out" is a common UK term
+
 CTA REQUIREMENTS (STRICT):
 - Include exactly 3 CTAs throughout the site (Hero, Mid-page, Bottom).
 - EVERY CTA MUST include the literal phone number "{phone}" directly in the text (e.g., "Get an Estimate — Call {phone}").
 - DO NOT use placeholders like "[Phone]", brackets, or generic text. The number MUST be visible.
-- Examples: "Call Us — {phone}", "Request Service — {phone}".
+- Examples: "Ring Us — {phone}", "Request a Quote — {phone}", "Call Us — {phone}".
 - Do NOT generate any CTA without the phone number.
 
 LOCATION PERSONALIZATION:
-- Include "{location}" in the titles of exactly 2-3 sections naturally (e.g., "Serving {location}", "Why {location} Residents Trust Us").
+- Include "{location}" in the titles of exactly 2-3 sections naturally (e.g., "Serving {location}", "Why {location} Residents Choose Us").
+- Location may be a city, town, borough, or county (e.g., "London", "Manchester", "Surrey", "Camden"). Treat it naturally.
 - Tone should be fluid and natural, not keyword-stuffed.
 
 HERO HEADLINE (STRICT):

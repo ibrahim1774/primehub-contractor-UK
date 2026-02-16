@@ -12,9 +12,27 @@ interface SiteRendererProps {
 
 const formatPhoneNumber = (phone: string) => {
   const digits = phone.replace(/\D/g, '');
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+
+  // UK mobile: 07XXX XXXXXX (11 digits starting with 07)
+  if (digits.length === 11 && digits.startsWith('07')) {
+    return `${digits.slice(0, 5)} ${digits.slice(5)}`;
   }
+
+  // UK London landline: 020 XXXX XXXX (11 digits starting with 020)
+  if (digits.length === 11 && digits.startsWith('020')) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
+  }
+
+  // UK other landline: 0XXXX XXXXXX (11 digits starting with 0)
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return `${digits.slice(0, 5)} ${digits.slice(5)}`;
+  }
+
+  // UK with country code: +44 XXXX XXXXXX (12 digits starting with 44)
+  if (digits.length === 12 && digits.startsWith('44')) {
+    return `+44 ${digits.slice(2, 6)} ${digits.slice(6)}`;
+  }
+
   return phone;
 };
 

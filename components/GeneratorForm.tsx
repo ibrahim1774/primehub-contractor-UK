@@ -90,7 +90,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({ onSubmit, isLoading }) =>
               <input
                 type="text"
                 required
-                placeholder="e.g. Dallas, TX"
+                placeholder="e.g. London"
                 value={inputs.location}
                 onChange={(e) => setInputs({ ...inputs, location: e.target.value })}
                 className="w-full bg-transparent border-b border-white/10 px-0 py-2 focus:outline-none focus:border-blue-500 transition-all text-white placeholder:text-gray-700 text-base md:text-lg"
@@ -105,7 +105,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({ onSubmit, isLoading }) =>
               <input
                 type="text"
                 required
-                placeholder="(555) 000-0000"
+                placeholder="07700 900000"
                 value={inputs.phone}
                 onChange={(e) => setInputs({ ...inputs, phone: e.target.value })}
                 className="w-full bg-transparent border-b border-white/10 px-0 py-2 focus:outline-none focus:border-blue-500 transition-all text-white placeholder:text-gray-700 text-base md:text-lg"

@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 },
                 custom_data: {
                     value: parseFloat(process.env.PURCHASE_VALUE || '10.00'),
-                    currency: process.env.PURCHASE_CURRENCY || 'USD',
+                    currency: process.env.PURCHASE_CURRENCY || 'GBP',
                 },
             },
         ],

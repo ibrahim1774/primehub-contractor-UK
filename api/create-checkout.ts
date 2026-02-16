@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             line_items: [
                 {
                     price_data: {
-                        currency: 'usd',
+                        currency: 'gbp',
                         product_data: {
                             name: `Website Hosting: ${safeCompanyName}`,
                             description: `Professional hosting and maintenance for your custom generated website.`,
