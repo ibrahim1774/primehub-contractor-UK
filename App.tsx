@@ -41,6 +41,8 @@ const App: React.FC = () => {
   const saveTimeoutRef = useRef<any>(null);
   const { isAuthenticated, isLoading: authLoading, user, profile, signOut: authSignOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
+  const wasAuthenticated = useRef(false);
   const [activeFormInputs, setActiveFormInputs] = useState<GeneratorInputs | null>(null);
   const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
   const [pendingMigrationSite, setPendingMigrationSite] = useState<SiteInstance | null>(null);
@@ -82,6 +84,20 @@ const App: React.FC = () => {
 
     loadSavedSite();
   }, [authLoading, isAuthenticated, user]);
+
+  // Auto-migrate site to new account after signup
+  React.useEffect(() => {
+    if (!authLoading && isAuthenticated && user && !wasAuthenticated.current && activeSite) {
+      // User just became authenticated and has a local site — migrate it
+      migrateLocalToSupabase(activeSite, user.id)
+        .then(() => {
+          console.log('Auto-migrated site to new account');
+          setCurrentView('dashboard');
+        })
+        .catch(err => console.error('Auto-migration failed:', err));
+    }
+    wasAuthenticated.current = isAuthenticated;
+  }, [isAuthenticated, authLoading, user, activeSite]);
 
   // Handle Payment Success & Auto-Deploy
   React.useEffect(() => {
@@ -149,11 +165,13 @@ const App: React.FC = () => {
           setDeploymentUrl(finalUrl);
           setDeploymentMessage('Success! Your site is live.');
 
-          // Save deployment info to Supabase + update local state
+          // Save deployment info to Supabase + IndexedDB + update local state
+          const deployedSite = { ...latestSite, deployedUrl: finalUrl, deploymentStatus: 'deployed' };
           if (user) {
             updateDeployment(latestSite.id, user.id, finalUrl);
           }
-          setActiveSite(prev => prev ? { ...prev, deployedUrl: finalUrl, deploymentStatus: 'deployed' } : prev);
+          await saveSiteInstance(deployedSite);
+          setActiveSite(deployedSite);
 
           // Auto-open
           setTimeout(() => {
@@ -294,11 +312,13 @@ const App: React.FC = () => {
       setDeploymentUrl(finalUrl);
       setDeploymentMessage('Success! Your changes are live.');
 
-      // Update Supabase + local state
+      // Update Supabase + IndexedDB + local state
+      const deployedSite = { ...activeSite, deployedUrl: finalUrl, deploymentStatus: 'deployed' };
       if (user) {
         updateDeployment(activeSite.id, user.id, finalUrl);
       }
-      setActiveSite(prev => prev ? { ...prev, deployedUrl: finalUrl, deploymentStatus: 'deployed' } : prev);
+      await saveSiteInstance(deployedSite);
+      setActiveSite(deployedSite);
 
       setTimeout(() => {
         window.open(finalUrl, '_blank');
@@ -409,7 +429,7 @@ const App: React.FC = () => {
               </button>
             ) : (
               <button
-                onClick={() => setShowAuthModal(true)}
+                onClick={() => { setAuthModalMode('signin'); setShowAuthModal(true); }}
                 className="flex items-center gap-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors"
               >
                 <UserIcon size={14} />
@@ -586,17 +606,40 @@ const App: React.FC = () => {
                         View Live Site <ExternalLink size={18} />
                       </a>
                     </div>
-                    <button
-                      onClick={() => {
-                        setDeploymentStatus('idle');
-                        if (isAuthenticated && activeSite) {
+
+                    {!isAuthenticated ? (
+                      <div className="w-full border-t border-white/10 pt-5 mt-1">
+                        <p className="text-gray-400 text-sm mb-4">
+                          Create a free account to manage your site, make edits, and republish anytime.
+                        </p>
+                        <button
+                          onClick={() => {
+                            setDeploymentStatus('idle');
+                            setAuthModalMode('signup');
+                            setShowAuthModal(true);
+                          }}
+                          className="w-full bg-white text-black font-bold py-3 rounded-full hover:bg-gray-100 transition-all uppercase tracking-widest text-xs"
+                        >
+                          Create Account
+                        </button>
+                        <button
+                          onClick={() => setDeploymentStatus('idle')}
+                          className="text-gray-500 hover:text-white text-sm font-medium transition-colors mt-3"
+                        >
+                          Skip for now
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setDeploymentStatus('idle');
                           setCurrentView('dashboard');
-                        }
-                      }}
-                      className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
-                    >
-                      {isAuthenticated ? 'Go to Dashboard' : 'Close'}
-                    </button>
+                        }}
+                        className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
+                      >
+                        Go to Dashboard
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -662,7 +705,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} defaultMode={authModalMode} />
     </div>
   );
 };

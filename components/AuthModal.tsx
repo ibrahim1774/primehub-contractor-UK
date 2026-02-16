@@ -5,24 +5,31 @@ import { X, Mail, Lock, User, Loader2 } from 'lucide-react';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultMode?: 'signin' | 'signup';
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 'signin' }) => {
   const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup'>(defaultMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+
+  // Sync mode when defaultMode prop changes (e.g. opening in signup mode)
+  React.useEffect(() => {
+    if (isOpen) {
+      setMode(defaultMode);
+      setError('');
+    }
+  }, [isOpen, defaultMode]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccessMessage('');
     setIsSubmitting(true);
 
     try {
@@ -38,7 +45,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         if (result.error) {
           setError(result.error.message);
         } else {
-          setSuccessMessage('Check your email to confirm your account.');
+          onClose();
         }
       }
     } finally {
@@ -49,7 +56,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const switchMode = (newMode: 'signin' | 'signup') => {
     setMode(newMode);
     setError('');
-    setSuccessMessage('');
   };
 
   return (
@@ -160,10 +166,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
           {error && (
             <p className="text-red-400 text-sm">{error}</p>
-          )}
-
-          {successMessage && (
-            <p className="text-green-400 text-sm">{successMessage}</p>
           )}
 
           <button

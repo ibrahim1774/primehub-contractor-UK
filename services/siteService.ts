@@ -119,6 +119,8 @@ export const migrateLocalToSupabase = async (
     phone: site.formInputs?.phone || site.data.contact.phone || '',
     brand_colour: site.formInputs?.brandColor || '#2563eb',
     site_data: site.data,
+    deployed_url: site.deployedUrl || null,
+    deployment_status: site.deploymentStatus || 'draft',
   });
 
   if (error) {
