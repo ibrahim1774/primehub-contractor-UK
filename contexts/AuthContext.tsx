@@ -33,6 +33,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fetchProfile(initialSession.user.id);
       }
       setIsLoading(false);
+    }).catch((err) => {
+      console.error('Failed to get auth session:', err);
+      setIsLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
