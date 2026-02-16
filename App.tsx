@@ -412,7 +412,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#05070A] font-light" style={{ fontFamily: '"Avenir Light", Avenir, sans-serif' }}>
       {/* Generator Form View */}
-      {currentView === 'generator' && !isLoading && appReady && (
+      {currentView === 'generator' && !isLoading && (
         <div className="pt-4 md:pt-6 pb-20 px-6">
           <div className="flex justify-between items-center mb-2 px-0 max-w-4xl mx-auto">
             {isAuthenticated && profile?.full_name ? (
@@ -445,13 +445,6 @@ const App: React.FC = () => {
       )}
 
       {isLoading && <LoadingIndicator />}
-
-      {/* App initialization loading state */}
-      {!appReady && !isLoading && (
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 text-gray-500 animate-spin" />
-        </div>
-      )}
 
       {/* Dashboard View */}
       {currentView === 'dashboard' && activeSite && appReady && (
