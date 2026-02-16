@@ -47,6 +47,7 @@ const App: React.FC = () => {
   const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
   const [pendingMigrationSite, setPendingMigrationSite] = useState<SiteInstance | null>(null);
   const [appReady, setAppReady] = useState(false);
+  const [deploySource, setDeploySource] = useState<'payment' | 'publish' | null>(null);
 
   const hasPaid = activeSite?.deploymentStatus === 'deployed';
 
@@ -129,6 +130,7 @@ const App: React.FC = () => {
         }).catch(err => console.error('[FB CAPI] Client-side call failed:', err));
 
         setCurrentView('editor');
+        setDeploySource('payment');
         setDeploymentStatus('deploying');
         setDeploymentMessage('Payment Verified! Starting automated deployment...');
 
@@ -151,8 +153,8 @@ const App: React.FC = () => {
           setDeploymentMessage('Building and deploying your site to Vercel...');
           const result = await deploySite(latestSite.data, projectName);
 
-          // 10-second countdown
-          for (let i = 10; i > 0; i--) {
+          // 3-second countdown
+          for (let i = 3; i > 0; i--) {
             setDeploymentMessage(`Deploying... ${i}s`);
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
@@ -291,6 +293,7 @@ const App: React.FC = () => {
     setSaveStatus('saved');
 
     // Deploy without Stripe checkout
+    setDeploySource('publish');
     setDeploymentStatus('deploying');
     setDeploymentMessage('Publishing your changes...');
 
@@ -302,7 +305,7 @@ const App: React.FC = () => {
       await deploySite(activeSite.data, projectName);
 
       // Countdown
-      for (let i = 10; i > 0; i--) {
+      for (let i = 3; i > 0; i--) {
         setDeploymentMessage(`Deploying... ${i}s`);
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
@@ -607,7 +610,7 @@ const App: React.FC = () => {
                       </a>
                     </div>
 
-                    {!isAuthenticated ? (
+                    {!isAuthenticated && deploySource === 'payment' ? (
                       <div className="w-full border-t border-white/10 pt-5 mt-1">
                         <p className="text-gray-400 text-sm mb-4">
                           Create a free account to manage your site, make edits, and republish anytime.
@@ -629,7 +632,7 @@ const App: React.FC = () => {
                           Skip for now
                         </button>
                       </div>
-                    ) : (
+                    ) : isAuthenticated ? (
                       <button
                         onClick={() => {
                           setDeploymentStatus('idle');
@@ -638,6 +641,13 @@ const App: React.FC = () => {
                         className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
                       >
                         Go to Dashboard
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setDeploymentStatus('idle')}
+                        className="text-gray-500 hover:text-white text-sm font-medium transition-colors mt-3"
+                      >
+                        Close
                       </button>
                     )}
                   </div>
