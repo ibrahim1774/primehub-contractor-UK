@@ -77,6 +77,7 @@ export interface SiteInstance {
   id: string;
   data: GeneratedSiteData;
   lastSaved: number;
+  formInputs?: GeneratorInputs;
 }
 
 export interface GeneratorInputs {

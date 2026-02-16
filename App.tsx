@@ -6,8 +6,9 @@ import LoadingIndicator from './components/LoadingIndicator.js';
 import { generateSiteContent } from './services/geminiService.js';
 import { saveSiteInstance, getAllSites } from './services/storageService.js';
 import { deploySite } from './services/deploymentService.js';
+import { saveSite, updateSiteContent, loadUserSite, loadLocalSite, migrateLocalToSupabase, updateDeployment } from './services/siteService.js';
 import { GeneratorInputs, GeneratedSiteData, SiteInstance } from './types.js';
-import { ChevronLeft, CloudCheck, Loader2, Rocket, ExternalLink, User as UserIcon } from 'lucide-react';
+import { ChevronLeft, CloudCheck, Loader2, Rocket, ExternalLink, User as UserIcon, CloudUpload, X } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext.js';
 import AuthModal from './components/AuthModal.js';
 
@@ -36,8 +37,46 @@ const App: React.FC = () => {
   const [deploymentUrl, setDeploymentUrl] = useState<string>('');
   const [deploymentMessage, setDeploymentMessage] = useState<string>('');
   const saveTimeoutRef = useRef<any>(null);
-  const { isAuthenticated, signOut: authSignOut } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user, signOut: authSignOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [activeFormInputs, setActiveFormInputs] = useState<GeneratorInputs | null>(null);
+  const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
+  const [pendingMigrationSite, setPendingMigrationSite] = useState<SiteInstance | null>(null);
+  const [appReady, setAppReady] = useState(false);
+
+  // On-mount: load saved site from Supabase (if auth'd) or IndexedDB
+  React.useEffect(() => {
+    if (authLoading) return; // Wait for auth to resolve
+
+    const loadSavedSite = async () => {
+      try {
+        if (isAuthenticated && user) {
+          // Try Supabase first
+          const cloudSite = await loadUserSite(user.id);
+          if (cloudSite) {
+            setActiveSite(cloudSite);
+            if (cloudSite.formInputs) setActiveFormInputs(cloudSite.formInputs);
+            setAppReady(true);
+            return;
+          }
+
+          // No cloud site — check IndexedDB for migration
+          const localSite = await loadLocalSite();
+          if (localSite) {
+            setPendingMigrationSite(localSite);
+            setShowMigrationPrompt(true);
+            setAppReady(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load saved site:', err);
+      }
+      setAppReady(true);
+    };
+
+    loadSavedSite();
+  }, [authLoading, isAuthenticated, user]);
 
   // Handle Payment Success & Auto-Deploy
   React.useEffect(() => {
@@ -104,6 +143,11 @@ const App: React.FC = () => {
           setDeploymentUrl(finalUrl);
           setDeploymentMessage('Success! Your site is live.');
 
+          // Save deployment info to Supabase
+          if (user) {
+            updateDeployment(latestSite.id, user.id, finalUrl);
+          }
+
           // Auto-open
           setTimeout(() => {
             window.open(finalUrl, '_blank');
@@ -137,12 +181,14 @@ const App: React.FC = () => {
 
       const data = await generateSiteContent(newInputs);
       const instance: SiteInstance = {
-        id: Math.random().toString(36).substring(7),
+        id: crypto.randomUUID(),
         data: data,
-        lastSaved: Date.now()
+        lastSaved: Date.now(),
+        formInputs: newInputs,
       };
       setActiveSite(instance);
-      await saveSiteInstance(instance);
+      setActiveFormInputs(newInputs);
+      await saveSite(instance, newInputs, user?.id ?? null);
     } catch (error: any) {
       console.error("Generation failed:", error);
       if (error.message?.includes("Requested entity was not found") && window.aistudio) {
@@ -167,7 +213,7 @@ const App: React.FC = () => {
 
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        await saveSiteInstance(updatedSite);
+        await updateSiteContent(updatedSite, user?.id ?? null);
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 1500);
       } catch (err) {
@@ -175,20 +221,43 @@ const App: React.FC = () => {
         setSaveStatus('idle');
       }
     }, 600);
-  }, [activeSite]);
+  }, [activeSite, user]);
 
   const reset = useCallback(() => {
     if (confirm("Go back to generator? Your current site is saved locally.")) {
       setActiveSite(null);
+      setActiveFormInputs(null);
     }
   }, []);
+
+  const handleMigrate = async (shouldSave: boolean) => {
+    if (pendingMigrationSite) {
+      if (shouldSave && user) {
+        try {
+          await migrateLocalToSupabase(pendingMigrationSite, user.id);
+        } catch (err) {
+          console.error('Migration failed:', err);
+        }
+      }
+      setActiveSite(pendingMigrationSite);
+      if (pendingMigrationSite.formInputs) {
+        setActiveFormInputs(pendingMigrationSite.formInputs);
+      }
+    }
+    setShowMigrationPrompt(false);
+    setPendingMigrationSite(null);
+  };
 
   const handleDeploy = async () => {
     if (!activeSite) return;
 
-    // 1. Save locally one last time
+    // 1. Save to IndexedDB + Supabase one last time before redirect
     setSaveStatus('saving');
-    await saveSiteInstance(activeSite);
+    if (activeFormInputs) {
+      await saveSite(activeSite, activeFormInputs, user?.id ?? null);
+    } else {
+      await saveSiteInstance(activeSite);
+    }
     setSaveStatus('saved');
 
     // 2. Call dynamic checkout API
@@ -237,7 +306,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#05070A] font-light" style={{ fontFamily: '"Avenir Light", Avenir, sans-serif' }}>
-      {!activeSite && !isLoading && (
+      {!activeSite && !isLoading && appReady && (
         <div className="pt-4 md:pt-6 pb-20 px-6">
           <div className="flex justify-end mb-2 px-0 max-w-4xl mx-auto">
             {isAuthenticated ? (
@@ -387,6 +456,45 @@ const App: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Migration Prompt */}
+      {showMigrationPrompt && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-[#05070A] border border-white/10 p-8 rounded-3xl max-w-md w-full shadow-2xl relative">
+            <button
+              onClick={() => handleMigrate(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex flex-col items-center gap-6 text-center">
+              <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <CloudUpload className="text-blue-500" size={32} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Website Found</h3>
+                <p className="text-gray-400 text-sm">
+                  We found a website you created earlier. Save it to your account so it's backed up in the cloud?
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 w-full">
+                <button
+                  onClick={() => handleMigrate(true)}
+                  className="w-full bg-white text-black font-bold py-3 rounded-full hover:bg-gray-100 transition-all uppercase tracking-widest text-xs"
+                >
+                  Save to Account
+                </button>
+                <button
+                  onClick={() => handleMigrate(false)}
+                  className="w-full bg-white/5 text-gray-400 font-bold py-3 rounded-full hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest text-xs"
+                >
+                  Continue Without Saving
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
