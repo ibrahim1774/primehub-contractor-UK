@@ -86,3 +86,26 @@ export interface GeneratorInputs {
   phone: string;
   brandColor: string;
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  stripe_customer_id: string | null;
+  subscription_status: 'none' | 'active' | 'past_due' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuthContextType {
+  session: import('@supabase/supabase-js').Session | null;
+  user: import('@supabase/supabase-js').User | null;
+  profile: UserProfile | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+}

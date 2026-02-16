@@ -7,7 +7,9 @@ import { generateSiteContent } from './services/geminiService.js';
 import { saveSiteInstance, getAllSites } from './services/storageService.js';
 import { deploySite } from './services/deploymentService.js';
 import { GeneratorInputs, GeneratedSiteData, SiteInstance } from './types.js';
-import { ChevronLeft, CloudCheck, Loader2, Rocket, ExternalLink } from 'lucide-react';
+import { ChevronLeft, CloudCheck, Loader2, Rocket, ExternalLink, User as UserIcon } from 'lucide-react';
+import { useAuth } from './contexts/AuthContext.js';
+import AuthModal from './components/AuthModal.js';
 
 declare global {
   interface Window {
@@ -34,6 +36,8 @@ const App: React.FC = () => {
   const [deploymentUrl, setDeploymentUrl] = useState<string>('');
   const [deploymentMessage, setDeploymentMessage] = useState<string>('');
   const saveTimeoutRef = useRef<any>(null);
+  const { isAuthenticated, signOut: authSignOut } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Handle Payment Success & Auto-Deploy
   React.useEffect(() => {
@@ -235,6 +239,25 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#05070A] font-light" style={{ fontFamily: '"Avenir Light", Avenir, sans-serif' }}>
       {!activeSite && !isLoading && (
         <div className="pt-4 md:pt-6 pb-20 px-6">
+          <div className="flex justify-end mb-2 px-0 max-w-4xl mx-auto">
+            {isAuthenticated ? (
+              <button
+                onClick={authSignOut}
+                className="flex items-center gap-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors"
+              >
+                <UserIcon size={14} />
+                Sign Out
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="flex items-center gap-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors"
+              >
+                <UserIcon size={14} />
+                Sign In
+              </button>
+            )}
+          </div>
           <GeneratorForm onSubmit={handleGenerate} isLoading={isLoading} />
         </div>
       )}
@@ -366,6 +389,8 @@ const App: React.FC = () => {
           )}
         </div>
       )}
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 };
