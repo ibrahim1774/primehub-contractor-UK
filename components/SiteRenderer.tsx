@@ -1,8 +1,9 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { GeneratedSiteData } from '../types';
 import IconRenderer from './IconRenderer';
-import { CheckCircle, Camera, Sparkles, UserCheck, HelpCircle, ArrowRight, Shield, Clock, Award, Star } from 'lucide-react';
+import { CheckCircle, Camera, Sparkles, UserCheck, HelpCircle, ArrowRight, Shield, Clock, Award, Star, Loader2 } from 'lucide-react';
+import { generateSlug } from '../services/urlService.js';
 
 interface SiteRendererProps {
   data: GeneratedSiteData;
@@ -66,15 +67,17 @@ const EditableImage: React.FC<{
   alt: string;
   className: string;
   isEditMode: boolean;
-  onUpload: (base64: string) => void;
-}> = ({ src, alt, className, isEditMode, onUpload }) => {
+  projectName: string;
+  onUpload: (url: string) => void;
+}> = ({ src, alt, className, isEditMode, projectName, onUpload }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         const MAX_WIDTH = 1200;
         const MAX_HEIGHT = 1200;
         let width = img.width;
@@ -95,17 +98,42 @@ const EditableImage: React.FC<{
         const ctx = canvas.getContext('2d')!;
         ctx.drawImage(img, 0, 0, width, height);
         const compressed = canvas.toDataURL('image/jpeg', 0.7);
-        onUpload(compressed);
         URL.revokeObjectURL(img.src);
+
+        // Upload to GCS immediately
+        setIsUploading(true);
+        try {
+          const res = await fetch('/api/upload-asset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base64: compressed, projectName }),
+          });
+          if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+          const result = await res.json();
+          onUpload(result.url);
+        } catch (err) {
+          console.error('Image upload to GCS failed, using base64 fallback:', err);
+          onUpload(compressed);
+        } finally {
+          setIsUploading(false);
+        }
       };
       img.src = URL.createObjectURL(file);
     }
   };
 
   return (
-    <div className={`relative group overflow-hidden ${className}`} onClick={() => isEditMode && fileInputRef.current?.click()}>
+    <div className={`relative group overflow-hidden ${className}`} onClick={() => isEditMode && !isUploading && fileInputRef.current?.click()}>
       <img src={src} alt={alt} className="w-full h-full object-cover" />
-      {isEditMode && (
+      {isUploading && (
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-30">
+          <div className="bg-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2">
+            <Loader2 className="text-blue-600 w-5 h-5 animate-spin" />
+            <span className="text-blue-900 font-bold text-xs uppercase tracking-tight">Uploading...</span>
+          </div>
+        </div>
+      )}
+      {isEditMode && !isUploading && (
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 z-20">
           <div className="bg-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 transform group-hover:scale-105 transition-transform">
             <Camera className="text-blue-600 w-5 h-5" />
@@ -120,6 +148,7 @@ const EditableImage: React.FC<{
 
 const SiteRenderer: React.FC<SiteRendererProps> = ({ data, isEditMode, onUpdate }) => {
   const primaryColor = '#2563eb'; // Default premium blue
+  const projectName = generateSlug(data.contact.companyName);
 
   const updateField = (path: string, val: any) => {
     if (!onUpdate) return;
@@ -173,7 +202,8 @@ const SiteRenderer: React.FC<SiteRendererProps> = ({ data, isEditMode, onUpdate 
             alt="Hero"
             className="w-full h-full"
             isEditMode={isEditMode}
-            onUpload={(base64) => updateField('hero.heroImage', base64)}
+            projectName={projectName}
+            onUpload={(url) => updateField('hero.heroImage', url)}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent"></div>
         </div>
@@ -311,7 +341,8 @@ const SiteRenderer: React.FC<SiteRendererProps> = ({ data, isEditMode, onUpdate 
               alt="Action"
               className="rounded-[3rem] shadow-2xl w-full aspect-[4/5] object-cover relative z-10"
               isEditMode={isEditMode}
-              onUpload={(base64) => updateField('valueProposition.image', base64)}
+              projectName={projectName}
+              onUpload={(url) => updateField('valueProposition.image', url)}
             />
           </div>
           <div className="lg:w-1/2 space-y-12 relative z-10">
@@ -476,7 +507,8 @@ const SiteRenderer: React.FC<SiteRendererProps> = ({ data, isEditMode, onUpdate 
               <EditableImage
                 src={data.whoWeHelp.image}
                 isEditMode={isEditMode}
-                onUpload={(val: string) => updateField('whoWeHelp.image', val)}
+                projectName={projectName}
+                onUpload={(url: string) => updateField('whoWeHelp.image', url)}
                 className="rounded-3xl shadow-2xl w-full h-[300px] md:h-[500px] object-cover"
                 alt={data.whoWeHelp.title}
               />
