@@ -25,7 +25,7 @@ const BannerText: React.FC<{
   text: string;
 }> = ({ text }) => {
   return (
-    <div className="text-center flex-1 px-4 font-bold text-[15px] md:text-base tracking-tight leading-snug md:leading-tight py-1">
+    <div className="text-center flex-1 px-2 font-bold text-[12px] md:text-sm tracking-tight leading-snug py-0.5">
       {text}
     </div>
   );
@@ -571,7 +571,7 @@ const App: React.FC = () => {
             </div>
           ) : (
             // Pre-payment toolbar: Red banner with instructions
-            <div className="sticky top-0 z-[110] bg-red-600 text-white px-4 py-3 md:py-5 shadow-lg flex items-center justify-between min-h-[60px]">
+            <div className="sticky top-0 z-[110] bg-red-600 text-white px-4 py-2 md:py-3 shadow-lg flex items-center justify-between">
               <div className="flex items-center gap-1 md:gap-2 flex-1 min-w-0">
                 <button
                   onClick={handleBackFromEditor}
@@ -581,7 +581,7 @@ const App: React.FC = () => {
                   <ChevronLeft size={20} />
                 </button>
                 <BannerText
-                  text="Tap text to edit or tap images to replace them, after done click deploy website below"
+                  text="Tap to edit text & images, then deploy below"
                 />
               </div>
 
@@ -614,18 +614,18 @@ const App: React.FC = () => {
           {/* Bottom deploy bar — only for unpaid users */}
           {!hasPaid && (
             <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100 p-3 md:p-4 shadow-[0_-8px_20px_rgba(0,0,0,0.05)]">
-              <div className="max-w-7xl mx-auto flex flex-col items-center gap-2">
+              <div className="max-w-7xl mx-auto flex flex-col items-center gap-1">
                 {/* How It Works */}
                 <div className="w-full text-center">
-                  <p className="text-gray-400 text-[9px] font-bold uppercase tracking-widest mb-1">How It Works</p>
-                  <div className="flex flex-col md:flex-row md:justify-center gap-0.5 md:gap-4 text-gray-500 text-[10px] md:text-xs">
-                    <span><strong className="text-gray-700">1.</strong> Pay for website hosting</span>
-                    <span><strong className="text-gray-700">2.</strong> Create a quick account</span>
-                    <span><strong className="text-gray-700">3.</strong> Edit text, replace images & choose a custom domain</span>
+                  <p className="text-black/40 text-[8px] font-bold uppercase tracking-widest mb-0.5">How It Works</p>
+                  <div className="flex flex-col md:flex-row md:justify-center gap-0 md:gap-3 text-black/60 text-[9px] md:text-[10px]">
+                    <span><strong className="text-black">1.</strong> Pay for website hosting</span>
+                    <span><strong className="text-black">2.</strong> Create a quick account</span>
+                    <span><strong className="text-black">3.</strong> Edit text, replace images & choose a custom domain</span>
                   </div>
                 </div>
                 <div className="flex flex-col md:flex-row items-center justify-center gap-2 w-full">
-                  <p className="text-gray-900 font-bold text-xs md:text-sm">
+                  <p className="text-black font-bold text-xs md:text-sm">
                     PAY ONLY £15/MONTH WEBSITE HOSTING TO HAVE YOUR CUSTOM SITE LIVE & ACTIVE
                   </p>
                   <button
