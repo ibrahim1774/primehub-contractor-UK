@@ -3,7 +3,7 @@ import { SiteInstance, UserProfile } from '../types.js';
 import { User } from '@supabase/supabase-js';
 import {
   Zap, ChevronDown, Pencil, LayoutGrid, ImageIcon, CreditCard,
-  ExternalLink, Globe, CircleDot, Clock, Loader2
+  ExternalLink, Globe, CircleDot, Clock, Loader2, Settings
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -13,6 +13,7 @@ interface DashboardProps {
   onEditSite: () => void;
   onSignOut: () => void;
   onCreateNew: () => void;
+  onOpenSettings: () => void;
 }
 
 const timeAgo = (timestamp: number): string => {
@@ -27,7 +28,7 @@ const timeAgo = (timestamp: number): string => {
   return new Date(timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, onSignOut, onCreateNew }) => {
+const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, onSignOut, onCreateNew, onOpenSettings }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
 
@@ -92,6 +93,12 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, 
                     className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors"
                   >
                     Dashboard
+                  </button>
+                  <button
+                    onClick={() => { setDropdownOpen(false); onOpenSettings(); }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors flex items-center gap-2"
+                  >
+                    <Settings size={14} className="text-gray-400" /> Settings
                   </button>
                   <button
                     onClick={() => { setDropdownOpen(false); onSignOut(); }}
