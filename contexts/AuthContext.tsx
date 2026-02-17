@@ -26,8 +26,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
+    let initialised = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
+      async (event, newSession) => {
+        console.log('[Auth] onAuthStateChange:', event, 'hasSession:', !!newSession);
+        initialised = true;
         setSession(newSession);
         setUser(newSession?.user ?? null);
         if (newSession?.user) {
@@ -38,6 +42,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
       }
     );
+
+    // Fallback: also call getSession in case INITIAL_SESSION doesn't fire
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      console.log('[Auth] getSession:', 'hasSession:', !!s, 'alreadyInitialised:', initialised);
+      if (!initialised) {
+        setSession(s);
+        setUser(s?.user ?? null);
+        if (s?.user) {
+          fetchProfile(s.user.id);
+        } else {
+          setProfile(null);
+        }
+        setIsLoading(false);
+      }
+    }).catch((err) => {
+      console.error('[Auth] getSession failed:', err);
+      if (!initialised) setIsLoading(false);
+    });
 
     return () => {
       subscription.unsubscribe();
