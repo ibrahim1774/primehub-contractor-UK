@@ -50,6 +50,13 @@ const App: React.FC = () => {
 
   const hasPaid = activeSite?.deploymentStatus === 'deployed';
 
+  const handleSignOut = async () => {
+    await authSignOut();
+    setActiveSite(null);
+    setActiveFormInputs(null);
+    setCurrentView('generator');
+  };
+
   // On-mount: load saved site from Supabase (if auth'd) or IndexedDB
   React.useEffect(() => {
     if (authLoading) return; // Wait for auth to resolve
@@ -414,7 +421,7 @@ const App: React.FC = () => {
                   </button>
                 )}
                 <button
-                  onClick={authSignOut}
+                  onClick={handleSignOut}
                   className="flex items-center gap-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors"
                 >
                   <UserIcon size={14} />
@@ -444,7 +451,7 @@ const App: React.FC = () => {
           profile={profile}
           user={user}
           onEditSite={() => setCurrentView('editor')}
-          onSignOut={authSignOut}
+          onSignOut={handleSignOut}
           onCreateNew={() => {
             setActiveSite(null);
             setActiveFormInputs(null);

@@ -8,7 +8,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Missing Supabase environment variables: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+    },
+});
 
 /**
  * Persists lead data to Supabase silently.
