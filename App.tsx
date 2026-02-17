@@ -614,20 +614,29 @@ const App: React.FC = () => {
           {/* Bottom deploy bar — only for unpaid users */}
           {!hasPaid && (
             <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100 p-3 md:p-4 shadow-[0_-8px_20px_rgba(0,0,0,0.05)]">
-              <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-3">
-                <div className="text-center md:text-left">
+              <div className="max-w-7xl mx-auto flex flex-col items-center gap-2">
+                {/* How It Works */}
+                <div className="w-full text-center">
+                  <p className="text-gray-400 text-[9px] font-bold uppercase tracking-widest mb-1">How It Works</p>
+                  <div className="flex flex-col md:flex-row md:justify-center gap-0.5 md:gap-4 text-gray-500 text-[10px] md:text-xs">
+                    <span><strong className="text-gray-700">1.</strong> Pay for website hosting</span>
+                    <span><strong className="text-gray-700">2.</strong> Create a quick account</span>
+                    <span><strong className="text-gray-700">3.</strong> Edit text, replace images & choose a custom domain</span>
+                  </div>
+                </div>
+                <div className="flex flex-col md:flex-row items-center justify-center gap-2 w-full">
                   <p className="text-gray-900 font-bold text-xs md:text-sm">
                     PAY ONLY £15/MONTH WEBSITE HOSTING TO HAVE YOUR CUSTOM SITE LIVE & ACTIVE
                   </p>
+                  <button
+                    onClick={handleDeploy}
+                    disabled={deploymentStatus === 'deploying'}
+                    className="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all uppercase tracking-tighter disabled:opacity-50"
+                  >
+                    {deploymentStatus === 'deploying' ? <Loader2 className="animate-spin" size={18} /> : <Rocket size={18} />}
+                    Deploy Website
+                  </button>
                 </div>
-                <button
-                  onClick={handleDeploy}
-                  disabled={deploymentStatus === 'deploying'}
-                  className="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all uppercase tracking-tighter disabled:opacity-50"
-                >
-                  {deploymentStatus === 'deploying' ? <Loader2 className="animate-spin" size={18} /> : <Rocket size={18} />}
-                  Deploy Website
-                </button>
               </div>
             </div>
           )}

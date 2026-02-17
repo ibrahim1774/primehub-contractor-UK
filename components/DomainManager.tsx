@@ -148,14 +148,14 @@ const DomainManager: React.FC<DomainManagerProps> = ({ site }) => {
       <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-4">Custom Domain</p>
 
       {/* Search Row */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         <input
           type="text"
           value={domainInput}
           onChange={(e) => setDomainInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="yourbusiness"
-          className="flex-1 bg-[#05070A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500/50 transition-colors"
+          className="flex-1 min-w-0 bg-[#05070A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500/50 transition-colors"
         />
         <select
           value={selectedTld}
@@ -169,7 +169,7 @@ const DomainManager: React.FC<DomainManagerProps> = ({ site }) => {
         <button
           onClick={handleSearch}
           disabled={checking || !domainInput.trim()}
-          className="bg-white/10 hover:bg-white/15 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-40 flex items-center gap-2"
+          className="w-full md:w-auto bg-white/10 hover:bg-white/15 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
         >
           {checking ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
           Search
