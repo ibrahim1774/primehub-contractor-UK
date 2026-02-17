@@ -26,18 +26,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      if (initialSession?.user) {
-        fetchProfile(initialSession.user.id);
-      }
-      setIsLoading(false);
-    }).catch((err) => {
-      console.error('Failed to get auth session:', err);
-      setIsLoading(false);
-    });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
         setSession(newSession);
@@ -47,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setProfile(null);
         }
+        setIsLoading(false);
       }
     );
 
@@ -72,7 +61,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Supabase signOut error:', err);
+    }
+    setSession(null);
+    setUser(null);
     setProfile(null);
   };
 

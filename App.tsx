@@ -51,7 +51,11 @@ const App: React.FC = () => {
   const hasPaid = activeSite?.deploymentStatus === 'deployed';
 
   const handleSignOut = async () => {
-    await authSignOut();
+    try {
+      await authSignOut();
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
     setActiveSite(null);
     setActiveFormInputs(null);
     setCurrentView('generator');
