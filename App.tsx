@@ -617,11 +617,11 @@ const App: React.FC = () => {
               <div className="max-w-7xl mx-auto flex flex-col items-center gap-1">
                 {/* How It Works */}
                 <div className="w-full text-center">
-                  <p className="text-black/40 text-[8px] font-bold uppercase tracking-widest mb-0.5">How It Works</p>
-                  <div className="flex flex-col md:flex-row md:justify-center gap-0 md:gap-3 text-black/60 text-[9px] md:text-[10px]">
-                    <span><strong className="text-black">1.</strong> Pay for website hosting</span>
-                    <span><strong className="text-black">2.</strong> Create a quick account</span>
-                    <span><strong className="text-black">3.</strong> Edit text, replace images & choose a custom domain</span>
+                  <p className="text-black text-xs md:text-sm font-bold uppercase tracking-widest mb-0.5">How It Works</p>
+                  <div className="flex flex-col md:flex-row md:justify-center gap-0 md:gap-3 text-black text-xs md:text-sm">
+                    <span><strong>1.</strong> Pay for website hosting</span>
+                    <span><strong>2.</strong> Create a quick account</span>
+                    <span><strong>3.</strong> Edit text, replace images & choose a custom domain</span>
                   </div>
                 </div>
                 <div className="flex flex-col md:flex-row items-center justify-center gap-2 w-full">
