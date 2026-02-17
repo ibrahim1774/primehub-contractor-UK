@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { SiteInstance, UserProfile } from '../types.js';
 import { User } from '@supabase/supabase-js';
 import {
-  Zap, ChevronDown, Pencil, LayoutGrid, ImageIcon, CreditCard,
-  ExternalLink, Globe, CircleDot, Clock, Loader2, Settings
+  Zap, ChevronDown, CreditCard,
+  ExternalLink, Globe, CircleDot, Clock, Loader2
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -13,7 +13,6 @@ interface DashboardProps {
   onEditSite: () => void;
   onSignOut: () => void;
   onCreateNew: () => void;
-  onOpenSettings: () => void;
 }
 
 const timeAgo = (timestamp: number): string => {
@@ -28,7 +27,7 @@ const timeAgo = (timestamp: number): string => {
   return new Date(timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, onSignOut, onCreateNew, onOpenSettings }) => {
+const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, onSignOut, onCreateNew }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
 
@@ -44,7 +43,7 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, 
     }
     setBillingLoading(true);
     try {
-      const res = await fetch('api/create-portal-session', {
+      const res = await fetch('/api/create-portal-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customerId: profile.stripe_customer_id }),
@@ -93,12 +92,6 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, 
                     className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors"
                   >
                     Dashboard
-                  </button>
-                  <button
-                    onClick={() => { setDropdownOpen(false); onOpenSettings(); }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors flex items-center gap-2"
-                  >
-                    <Settings size={14} className="text-gray-400" /> Settings
                   </button>
                   <button
                     onClick={() => { setDropdownOpen(false); onSignOut(); }}
@@ -184,6 +177,18 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, 
                 >
                   Edit Website
                 </button>
+                <button
+                  onClick={handleManageBilling}
+                  disabled={billingLoading || !profile?.stripe_customer_id}
+                  className="border border-white/10 text-white font-bold px-6 py-2.5 rounded-full text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {billingLoading ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <CreditCard size={14} />
+                  )}
+                  Manage Subscription
+                </button>
               </div>
             </div>
           </div>
@@ -214,62 +219,6 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, 
           </div>
         </div>
 
-        {/* Action Cards */}
-        <h3 className="text-white font-bold text-lg mb-4 tracking-tight">Quick Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Edit Website */}
-          <button
-            onClick={onEditSite}
-            className="bg-[#0D1117]/80 border border-white/10 rounded-2xl p-5 text-left hover:border-blue-500/30 hover:bg-[#0D1117] transition-all group"
-          >
-            <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center mb-3 group-hover:bg-blue-500/20 transition-colors">
-              <Pencil size={18} className="text-blue-400" />
-            </div>
-            <h4 className="text-white font-bold text-sm mb-1">Edit Your Website</h4>
-            <p className="text-gray-500 text-xs">Make changes to text, images, and layout</p>
-          </button>
-
-          {/* Manage Sections */}
-          <div className="bg-[#0D1117]/80 border border-white/10 rounded-2xl p-5 text-left opacity-50 cursor-not-allowed relative">
-            <span className="absolute top-3 right-3 bg-white/5 text-gray-500 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/5">
-              Coming Soon
-            </span>
-            <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center mb-3">
-              <LayoutGrid size={18} className="text-purple-400" />
-            </div>
-            <h4 className="text-white font-bold text-sm mb-1">Manage Sections</h4>
-            <p className="text-gray-500 text-xs">Reorder or hide sections on your website</p>
-          </div>
-
-          {/* Upload Images */}
-          <div className="bg-[#0D1117]/80 border border-white/10 rounded-2xl p-5 text-left opacity-50 cursor-not-allowed relative">
-            <span className="absolute top-3 right-3 bg-white/5 text-gray-500 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/5">
-              Coming Soon
-            </span>
-            <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center mb-3">
-              <ImageIcon size={18} className="text-amber-400" />
-            </div>
-            <h4 className="text-white font-bold text-sm mb-1">Upload Images</h4>
-            <p className="text-gray-500 text-xs">Replace or add new images to your site</p>
-          </div>
-
-          {/* Manage Billing */}
-          <button
-            onClick={handleManageBilling}
-            disabled={billingLoading || !profile?.stripe_customer_id}
-            className="bg-[#0D1117]/80 border border-white/10 rounded-2xl p-5 text-left hover:border-green-500/30 hover:bg-[#0D1117] transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center mb-3 group-hover:bg-green-500/20 transition-colors">
-              {billingLoading ? (
-                <Loader2 size={18} className="text-green-400 animate-spin" />
-              ) : (
-                <CreditCard size={18} className="text-green-400" />
-              )}
-            </div>
-            <h4 className="text-white font-bold text-sm mb-1">Manage Billing</h4>
-            <p className="text-gray-500 text-xs">Update payment method or view invoices</p>
-          </button>
-        </div>
       </div>
     </div>
   );

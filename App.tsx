@@ -12,7 +12,7 @@ import { GeneratorInputs, GeneratedSiteData, SiteInstance } from './types.js';
 import { ChevronLeft, CloudCheck, Loader2, Rocket, ExternalLink, User as UserIcon, Save } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext.js';
 import AuthModal from './components/AuthModal.js';
-import AccountSettings from './components/AccountSettings.js';
+
 
 declare global {
   interface Window {
@@ -32,7 +32,7 @@ const BannerText: React.FC<{
 };
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'generator' | 'dashboard' | 'editor' | 'settings'>('generator');
+  const [currentView, setCurrentView] = useState<'generator' | 'dashboard' | 'editor'>('generator');
   const [isLoading, setIsLoading] = useState(false);
   const [activeSite, setActiveSite] = useState<SiteInstance | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -458,39 +458,6 @@ const App: React.FC = () => {
           onEditSite={() => setCurrentView('editor')}
           onSignOut={handleSignOut}
           onCreateNew={() => {
-            setActiveSite(null);
-            setActiveFormInputs(null);
-            setCurrentView('generator');
-          }}
-          onOpenSettings={() => setCurrentView('settings')}
-        />
-      )}
-
-      {/* Settings View */}
-      {currentView === 'settings' && (
-        <AccountSettings
-          profile={profile}
-          user={user}
-          activeSite={activeSite}
-          formInputs={activeFormInputs}
-          onBack={() => setCurrentView(activeSite ? 'dashboard' : 'generator')}
-          onSignOut={handleSignOut}
-          onSiteSettingsUpdate={(newInputs) => {
-            setActiveFormInputs(newInputs);
-            if (activeSite) {
-              const updatedData = {
-                ...activeSite.data,
-                contact: {
-                  ...activeSite.data.contact,
-                  companyName: newInputs.companyName,
-                  phone: newInputs.phone,
-                  location: newInputs.location,
-                },
-              };
-              setActiveSite({ ...activeSite, data: updatedData });
-            }
-          }}
-          onDeleteSite={() => {
             setActiveSite(null);
             setActiveFormInputs(null);
             setCurrentView('generator');
