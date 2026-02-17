@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             name: `Website Hosting: ${safeCompanyName}`,
                             description: `Professional hosting and maintenance for your custom generated website.`,
                         },
-                        unit_amount: 1000, // $10.00
+                        unit_amount: 1500, // £15.00
                         recurring: {
                             interval: 'month',
                         },
