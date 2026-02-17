@@ -2,7 +2,7 @@
 import React, { useRef, useState } from 'react';
 import { GeneratedSiteData } from '../types';
 import IconRenderer from './IconRenderer';
-import { CheckCircle, Camera, Sparkles, UserCheck, HelpCircle, ArrowRight, Shield, Clock, Award, Star, Loader2 } from 'lucide-react';
+import { CheckCircle, Camera, X, Sparkles, UserCheck, HelpCircle, ArrowRight, Shield, Clock, Award, Star, Loader2 } from 'lucide-react';
 import { generateSlug } from '../services/urlService.js';
 
 interface SiteRendererProps {
@@ -142,6 +142,131 @@ const EditableImage: React.FC<{
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
         </div>
       )}
+    </div>
+  );
+};
+
+const GallerySlot: React.FC<{
+  slot: { gcs_url: string | null; alt: string };
+  isEditMode: boolean;
+  projectName: string;
+  onUpload: (url: string) => void;
+  onDelete: () => void;
+}> = ({ slot, isEditMode, projectName, onUpload, onDelete }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be under 5MB. Please choose a smaller file.');
+      return;
+    }
+
+    const img = new Image();
+    img.onload = async () => {
+      const MAX_WIDTH = 1200;
+      const MAX_HEIGHT = 1200;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > MAX_WIDTH) {
+        height = Math.round(height * (MAX_WIDTH / width));
+        width = MAX_WIDTH;
+      }
+      if (height > MAX_HEIGHT) {
+        width = Math.round(width * (MAX_HEIGHT / height));
+        height = MAX_HEIGHT;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+      URL.revokeObjectURL(img.src);
+
+      setIsUploading(true);
+      try {
+        const res = await fetch('/api/upload-asset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64: compressed, projectName }),
+        });
+        if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+        const result = await res.json();
+        onUpload(result.url);
+      } catch (err) {
+        console.error('Gallery image upload failed, using base64 fallback:', err);
+        onUpload(compressed);
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    img.src = URL.createObjectURL(file);
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  };
+
+  // Uploading state
+  if (isUploading) {
+    return (
+      <div className="aspect-[4/3] rounded-xl bg-slate-100 flex items-center justify-center">
+        <div className="bg-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2">
+          <Loader2 className="text-blue-600 w-5 h-5 animate-spin" />
+          <span className="text-blue-900 font-bold text-xs uppercase tracking-tight">Uploading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Uploaded state
+  if (slot.gcs_url) {
+    return (
+      <div className="relative group aspect-[4/3] rounded-xl overflow-hidden">
+        <img
+          src={slot.gcs_url}
+          alt={slot.alt || 'Our work'}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        {isEditMode && (
+          <>
+            <div
+              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer z-10"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="bg-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2">
+                <Camera className="text-blue-600 w-5 h-5" />
+                <span className="text-blue-900 font-bold text-xs uppercase tracking-tight">Replace Image</span>
+              </div>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-lg"
+            >
+              <X size={16} />
+            </button>
+            <input type="file" ref={fileInputRef} className="hidden" accept=".jpg,.jpeg,.png,.webp" onChange={handleFileChange} />
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // Empty state (only in edit mode)
+  if (!isEditMode) return null;
+
+  return (
+    <div
+      className="aspect-[4/3] rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-400 flex flex-col items-center justify-center cursor-pointer transition-colors bg-white/50"
+      onClick={() => fileInputRef.current?.click()}
+    >
+      <Camera size={32} className="text-slate-400 mb-3" />
+      <p className="text-slate-400 text-sm font-medium">Add your image</p>
+      <input type="file" ref={fileInputRef} className="hidden" accept=".jpg,.jpeg,.png,.webp" onChange={handleFileChange} />
     </div>
   );
 };
@@ -498,6 +623,77 @@ const SiteRenderer: React.FC<SiteRendererProps> = ({ data, isEditMode, onUpdate 
         </div>
       </section>
 
+      {/* Our Work Gallery Section */}
+      {(() => {
+        const gallery = data.gallery;
+        const hasAnyImages = gallery?.slots?.some(s => s.gcs_url);
+
+        // Hide entirely on published site if no images
+        if (!isEditMode && !hasAnyImages) return null;
+        // Hide if no gallery data at all (legacy sites) and not editing
+        if (!gallery && !isEditMode) return null;
+
+        return (
+          <section className="py-12 md:py-20 px-6 md:px-12 bg-slate-50">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="text-blue-600 font-black text-xs uppercase tracking-[0.2em] mb-4">Portfolio</div>
+                <EditableText
+                  text={gallery?.title || 'Our Work'}
+                  isEditMode={isEditMode}
+                  onBlur={(val) => updateField('gallery.title', val)}
+                  className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 mb-6"
+                  as="h2"
+                />
+                <EditableText
+                  text={gallery?.subtitle || 'See the quality of our craftsmanship'}
+                  isEditMode={isEditMode}
+                  onBlur={(val) => updateField('gallery.subtitle', val)}
+                  className="text-slate-500 text-lg md:text-xl font-medium max-w-2xl mx-auto"
+                />
+                <div className="w-24 h-1.5 bg-blue-600 mx-auto rounded-full mt-6"></div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {(gallery?.slots || [
+                  { gcs_url: null, alt: '' },
+                  { gcs_url: null, alt: '' },
+                  { gcs_url: null, alt: '' },
+                ]).map((slot, idx) => {
+                  // On published site, skip empty slots
+                  if (!isEditMode && !slot.gcs_url) return null;
+                  return (
+                    <GallerySlot
+                      key={idx}
+                      slot={slot}
+                      isEditMode={isEditMode}
+                      projectName={projectName}
+                      onUpload={(url) => {
+                        const slots = [...(gallery?.slots || [
+                          { gcs_url: null, alt: '' },
+                          { gcs_url: null, alt: '' },
+                          { gcs_url: null, alt: '' },
+                        ])];
+                        slots[idx] = { gcs_url: url, alt: slots[idx].alt || 'Our work' };
+                        updateField('gallery.slots', slots);
+                      }}
+                      onDelete={() => {
+                        const slots = [...(gallery?.slots || [
+                          { gcs_url: null, alt: '' },
+                          { gcs_url: null, alt: '' },
+                          { gcs_url: null, alt: '' },
+                        ])];
+                        slots[idx] = { gcs_url: null, alt: '' };
+                        updateField('gallery.slots', slots);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Who We Help Section */}
       <section className="py-12 md:py-16 bg-white overflow-hidden" id="who-we-help">

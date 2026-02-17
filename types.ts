@@ -56,6 +56,14 @@ export interface GeneratedSiteData {
       icon: string;
     }[];
   };
+  gallery?: {
+    title: string;
+    subtitle: string;
+    slots: {
+      gcs_url: string | null;
+      alt: string;
+    }[];
+  };
   whoWeHelp: {
     title: string;
     image: string;

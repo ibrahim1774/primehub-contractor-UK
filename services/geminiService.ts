@@ -91,6 +91,17 @@ export const generateSiteContent = async (inputs: GeneratorInputs): Promise<Gene
     contact.location = inputs.location;
     contact.companyName = inputs.companyName;
 
+    // Initialize empty gallery — user uploads their own work photos
+    siteData.gallery = {
+      title: 'Our Work',
+      subtitle: 'See the quality of our craftsmanship',
+      slots: [
+        { gcs_url: null, alt: '' },
+        { gcs_url: null, alt: '' },
+        { gcs_url: null, alt: '' },
+      ],
+    };
+
     return siteData as GeneratedSiteData;
   } catch (error: any) {
     console.error("Gemini API Error:", error);

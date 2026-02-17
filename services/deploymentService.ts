@@ -111,6 +111,16 @@ export const deploySite = async (data: GeneratedSiteData, projectName: string) =
       deployData.whoWeHelp.image = await uploadAsset(deployData.whoWeHelp.image);
     }
 
+    // Upload any gallery images that are still base64
+    if (deployData.gallery?.slots) {
+      for (let i = 0; i < deployData.gallery.slots.length; i++) {
+        const slot = deployData.gallery.slots[i];
+        if (slot.gcs_url?.startsWith('data:')) {
+          deployData.gallery.slots[i].gcs_url = await uploadAsset(slot.gcs_url);
+        }
+      }
+    }
+
     // 3. Render with paths (now URLs)
     const cleanBodyHtml = renderToStaticMarkup(React.createElement(SiteRenderer, { data: deployData, isEditMode: false }));
     files['index.html'] = `<!DOCTYPE html>
