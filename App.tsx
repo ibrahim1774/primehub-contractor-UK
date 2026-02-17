@@ -168,8 +168,8 @@ const App: React.FC = () => {
           setDeploymentMessage('Building and deploying your site to Vercel...');
           const result = await deploySite(latestSite.data, projectName);
 
-          // 3-second countdown
-          for (let i = 3; i > 0; i--) {
+          // 7-second countdown
+          for (let i = 7; i > 0; i--) {
             setDeploymentMessage(`Deploying... ${i}s`);
             await new Promise(resolve => setTimeout(resolve, 1000));
           }

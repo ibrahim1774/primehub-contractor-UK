@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { SiteInstance, UserProfile } from '../types.js';
 import { User } from '@supabase/supabase-js';
 import {
-  Zap, ChevronDown, CreditCard,
-  ExternalLink, Globe, CircleDot, Clock, Loader2
+  Zap, ChevronDown,
+  ExternalLink, Globe, CircleDot, Clock
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -29,35 +29,10 @@ const timeAgo = (timestamp: number): string => {
 
 const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, onSignOut, onCreateNew }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [billingLoading, setBillingLoading] = useState(false);
-
   const isLive = site.deploymentStatus === 'deployed';
   const companyName = site.data.contact.companyName;
   const userInitial = (profile?.full_name || (user?.user_metadata as any)?.full_name || profile?.email || 'U').charAt(0).toUpperCase();
   const userName = profile?.full_name || (user?.user_metadata as any)?.full_name || profile?.email || 'User';
-
-  const handleManageBilling = async () => {
-    if (!profile?.stripe_customer_id) {
-      alert('No billing account found. Please contact support.');
-      return;
-    }
-    setBillingLoading(true);
-    try {
-      const res = await fetch('/api/create-portal-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: profile.stripe_customer_id }),
-      });
-      if (!res.ok) throw new Error('Failed to create billing session');
-      const { url } = await res.json();
-      if (url) window.location.href = url;
-    } catch (err) {
-      console.error('Billing portal error:', err);
-      alert('Could not open billing portal. Please try again.');
-    } finally {
-      setBillingLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen pb-12">
@@ -176,18 +151,6 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, 
                   className="bg-white text-black font-bold px-6 py-2.5 rounded-full text-xs uppercase tracking-widest hover:bg-gray-100 active:scale-95 transition-all"
                 >
                   Edit Website
-                </button>
-                <button
-                  onClick={handleManageBilling}
-                  disabled={billingLoading || !profile?.stripe_customer_id}
-                  className="border border-white/10 text-white font-bold px-6 py-2.5 rounded-full text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {billingLoading ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <CreditCard size={14} />
-                  )}
-                  Manage Subscription
                 </button>
               </div>
             </div>

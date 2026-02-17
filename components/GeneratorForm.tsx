@@ -38,12 +38,12 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({ onSubmit, isLoading }) =>
         </div>
       </div>
 
-      {/* Headline Group - Reverted to 'under a minute' */}
+      {/* Headline */}
       <div className="mb-6 md:mb-10 text-center space-y-3">
         <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-white leading-tight">
-          Generate your <br className="hidden md:block" />
-          custom home service website <br className="hidden md:block" />
-          <span className="text-blue-500 italic">under a minute.</span>
+          UK Contractors: Generate your <br className="hidden md:block" />
+          professional custom home service website <br className="hidden md:block" />
+          <span className="text-blue-500 italic">in about 30 seconds.</span>
         </h1>
 
       </div>
