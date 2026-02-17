@@ -16,14 +16,6 @@ export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
     },
 });
 
-// Debug: check if session exists in localStorage on page load
-try {
-    const storageKey = `sb-${new URL(supabaseUrl || 'http://x').hostname.split('.')[0]}-auth-token`;
-    const stored = localStorage.getItem(storageKey);
-    console.log('[Supabase] Storage key:', storageKey, 'hasStoredSession:', !!stored);
-} catch (e) {
-    console.log('[Supabase] Could not check localStorage:', e);
-}
 
 /**
  * Persists lead data to Supabase silently.

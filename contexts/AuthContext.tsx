@@ -26,45 +26,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    let initialised = false;
+    let cancelled = false;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('[Auth] onAuthStateChange:', event, 'hasSession:', !!newSession);
-        initialised = true;
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        if (newSession?.user) {
-          await fetchProfile(newSession.user.id);
-        } else {
-          setProfile(null);
-        }
-        setIsLoading(false);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (cancelled) return;
 
-    // Fallback: also call getSession in case INITIAL_SESSION doesn't fire
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      console.log('[Auth] getSession:', 'hasSession:', !!s, 'alreadyInitialised:', initialised);
-      if (!initialised) {
-        setSession(s);
-        setUser(s?.user ?? null);
-        if (s?.user) {
-          fetchProfile(s.user.id);
-        } else {
-          setProfile(null);
-        }
-        setIsLoading(false);
+      console.log('[Auth] onAuthStateChange:', event, 'hasSession:', !!newSession);
+
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+
+      if (newSession?.user) {
+        fetchProfile(newSession.user.id); // no await — avoids deadlock inside auth lock
+      } else {
+        setProfile(null);
       }
-    }).catch((err) => {
-      console.error('[Auth] getSession failed:', err);
-      if (!initialised) setIsLoading(false);
+
+      setIsLoading(false);
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
