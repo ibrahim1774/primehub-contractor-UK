@@ -15,40 +15,37 @@ export const deploySite = async (data: GeneratedSiteData, projectName: string) =
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${data.hero.headline.line1} - ${data.contact.companyName}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      @font-face {
-        font-family: 'Avenir Light';
-        src: local('Avenir-Light'), local('Avenir Light'), local('HelveticaNeue-Light'), local('Helvetica Neue Light'), sans-serif;
-        font-weight: 300;
-      }
-      
       body {
-        font-family: "Avenir Light", "Avenir", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-family: "Poppins", sans-serif;
         background-color: #05070A;
         color: white;
         margin: 0;
         font-weight: 300;
       }
-      
+
       h1, h2, h3, h4, h5, h6, button, input, textarea, div, span, p, a {
-        font-family: "Avenir Light", "Avenir", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+        font-family: "Poppins", sans-serif !important;
       }
 
       .tracking-tighter {
         letter-spacing: -0.05em;
       }
-      
+
       .selection\:bg-blue-100 *::selection {
         background-color: #dbeafe;
         color: #1e40af;
       }
-      
+
       /* ContentEditable Clean Focus */
       [contenteditable="true"]:focus {
         outline: none;
       }
-      
+
       /* Custom Scrollbar */
       .custom-scrollbar::-webkit-scrollbar {
         width: 8px;
@@ -64,7 +61,7 @@ export const deploySite = async (data: GeneratedSiteData, projectName: string) =
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #cbd5e1;
       }
-      
+
       @media (max-width: 640px) {
         body {
           font-size: 14px;
@@ -129,30 +126,27 @@ export const deploySite = async (data: GeneratedSiteData, projectName: string) =
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${data.hero.headline.line1} - ${data.contact.companyName}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      @font-face {
-        font-family: 'Avenir Light';
-        src: local('Avenir-Light'), local('Avenir Light'), local('HelveticaNeue-Light'), local('Helvetica Neue Light'), sans-serif;
-        font-weight: 300;
-      }
-      
       body {
-        font-family: "Avenir Light", "Avenir", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-family: "Poppins", sans-serif;
         background-color: #05070A;
         color: white;
         margin: 0;
         font-weight: 300;
       }
-      
+
       h1, h2, h3, h4, h5, h6, button, input, textarea, div, span, p, a {
-        font-family: "Avenir Light", "Avenir", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+        font-family: "Poppins", sans-serif !important;
       }
 
       .tracking-tighter {
         letter-spacing: -0.05em;
       }
-      
+
       @media (max-width: 640px) {
         body {
           font-size: 14px;

@@ -27,7 +27,7 @@ const GeneratorForm: React.FC<GeneratorFormProps> = ({ onSubmit, isLoading }) =>
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 font-light" style={{ fontFamily: '"Avenir Light", Avenir, sans-serif' }}>
+    <div className="max-w-4xl mx-auto px-6 font-light" style={{ fontFamily: '"Poppins", sans-serif' }}>
       {/* Top Left Logo Header */}
       <div className="flex justify-start items-center gap-2 mb-6 md:mb-8">
         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">

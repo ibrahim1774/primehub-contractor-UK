@@ -403,7 +403,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070A] font-light" style={{ fontFamily: '"Avenir Light", Avenir, sans-serif' }}>
+    <div className="min-h-screen bg-[#05070A] font-light" style={{ fontFamily: '"Poppins", sans-serif' }}>
       {/* Generator Form View */}
       {currentView === 'generator' && !isLoading && (
         <div className="pt-4 md:pt-6 pb-20 px-6">

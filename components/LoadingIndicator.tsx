@@ -31,7 +31,7 @@ const LoadingIndicator: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#05070A] flex flex-col items-center justify-center p-6 font-light" style={{ fontFamily: '"Avenir Light", Avenir, sans-serif' }}>
+    <div className="fixed inset-0 z-[100] bg-[#05070A] flex flex-col items-center justify-center p-6 font-light" style={{ fontFamily: '"Poppins", sans-serif' }}>
       <div className="w-full max-w-md space-y-12 text-center">
         <div className="relative w-28 h-28 mx-auto">
           <div className="absolute inset-0 border-[3px] border-blue-500/10 rounded-3xl rotate-12"></div>
