@@ -315,7 +315,7 @@ const SiteRenderer: React.FC<SiteRendererProps> = ({ data, isEditMode, onUpdate 
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex flex-col justify-center overflow-hidden">
+      <section className="relative min-h-[90vh] flex flex-col overflow-hidden">
         <div className="absolute inset-0 z-0">
           <EditableImage
             src={data.hero.heroImage}
@@ -328,7 +328,7 @@ const SiteRenderer: React.FC<SiteRendererProps> = ({ data, isEditMode, onUpdate 
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent"></div>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-10">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-10 flex-1 flex items-center">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 mb-8 px-4 py-1.5 rounded-full bg-blue-500/20 backdrop-blur-md border border-blue-400/30 text-blue-100 text-[10px] md:text-xs font-bold tracking-[0.15em] uppercase">
               <Sparkles size={14} className="text-blue-400" />
