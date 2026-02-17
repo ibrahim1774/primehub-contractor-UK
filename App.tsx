@@ -206,6 +206,60 @@ const App: React.FC = () => {
     checkPaymentAndDeploy();
   }, []);
 
+  // Handle Domain Payment Success
+  React.useEffect(() => {
+    const handleDomainPayment = async () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('domain_payment') !== 'success') return;
+
+      const sessionId = params.get('session_id');
+      if (!sessionId) return;
+
+      // Clear URL params
+      window.history.replaceState({}, '', window.location.pathname);
+
+      setCurrentView('dashboard');
+      setDeploymentStatus('deploying');
+      setDeploymentMessage('Domain payment verified! Registering your domain...');
+
+      try {
+        const response = await fetch('api/purchase-domain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Domain purchase failed');
+        }
+
+        const { domain, testMode } = await response.json();
+
+        // Update activeSite with the custom domain
+        if (activeSite) {
+          const updatedSite = { ...activeSite, customDomain: domain };
+          setActiveSite(updatedSite);
+          await saveSiteInstance(updatedSite);
+        }
+
+        setDeploymentStatus('success');
+        setDeploymentUrl(domain ? `https://${domain}` : '');
+        setDeploymentMessage(
+          testMode
+            ? `Test mode: ${domain} would be connected in production.`
+            : `${domain} is now connected to your site!`
+        );
+      } catch (error: any) {
+        console.error('Domain purchase failed:', error);
+        setDeploymentStatus('error');
+        setDeploymentMessage(error.message || 'Domain registration failed. Please contact support.');
+      }
+    };
+
+    handleDomainPayment();
+  }, []);
+
   const handleGenerate = async (newInputs: GeneratorInputs) => {
     if (window.aistudio) {
       const hasKey = await window.aistudio.hasSelectedApiKey();

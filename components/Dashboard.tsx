@@ -5,6 +5,7 @@ import {
   Zap, ChevronDown,
   ExternalLink, Globe, CircleDot, Clock
 } from 'lucide-react';
+import DomainManager from './DomainManager.js';
 
 interface DashboardProps {
   site: SiteInstance;
@@ -156,6 +157,9 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, 
             </div>
           </div>
         </div>
+
+        {/* Custom Domain */}
+        {isLive && <DomainManager site={site} />}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

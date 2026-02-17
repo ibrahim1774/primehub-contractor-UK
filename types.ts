@@ -88,6 +88,8 @@ export interface SiteInstance {
   formInputs?: GeneratorInputs;
   deployedUrl?: string;
   deploymentStatus?: string;
+  customDomain?: string;
+  domainOrderId?: string;
 }
 
 export interface GeneratorInputs {
