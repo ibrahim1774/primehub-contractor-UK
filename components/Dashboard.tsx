@@ -167,12 +167,11 @@ const Dashboard: React.FC<DashboardProps> = ({ site, profile, user, onEditSite, 
             </div>
           </div>
           <div className="bg-[#0D1117]/80 border border-white/10 rounded-2xl p-5">
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Plan</p>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold">
-                {profile?.subscription_status === 'active' ? '£10/month Active' : 'No active plan'}
-              </span>
-            </div>
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Support</p>
+            <p className="text-gray-400 text-xs mb-1">Questions / Support / Cancellations</p>
+            <a href="mailto:ibrahim3709@gmail.com" className="text-blue-400 hover:text-blue-300 text-sm font-bold transition-colors">
+              ibrahim3709@gmail.com
+            </a>
           </div>
           <div className="bg-[#0D1117]/80 border border-white/10 rounded-2xl p-5">
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Last Published</p>
