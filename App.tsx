@@ -4,8 +4,9 @@ import GeneratorForm from './components/GeneratorForm.js';
 import SiteRenderer from './components/SiteRenderer.js';
 import LoadingIndicator from './components/LoadingIndicator.js';
 import Dashboard from './components/Dashboard.js';
+import PrePaymentBanner from './components/PrePaymentBanner.js';
 import { generateSiteContent } from './services/geminiService.js';
-import { saveSiteInstance, getAllSites } from './services/storageService.js';
+import { saveSiteInstance, getSiteInstance, getAllSites } from './services/storageService.js';
 import { deploySite } from './services/deploymentService.js';
 import { saveSite, updateSiteContent, loadUserSite, loadLocalSite, migrateLocalToSupabase, updateDeployment } from './services/siteService.js';
 import { GeneratorInputs, GeneratedSiteData, SiteInstance } from './types.js';
@@ -20,16 +21,6 @@ declare global {
     fbq: any;
   }
 }
-
-const BannerText: React.FC<{
-  text: string;
-}> = ({ text }) => {
-  return (
-    <div className="text-center flex-1 px-2 font-bold text-[12px] md:text-sm tracking-tight leading-snug py-0.5">
-      {text}
-    </div>
-  );
-};
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'generator' | 'dashboard' | 'editor'>('generator');
@@ -48,8 +39,21 @@ const App: React.FC = () => {
   const [authSignInOnly, setAuthSignInOnly] = useState(false);
   const [appReady, setAppReady] = useState(false);
   const [deploySource, setDeploySource] = useState<'payment' | 'publish' | null>(null);
+  const [isRestoring, setIsRestoring] = useState(true);
+  const generationFailedRef = useRef(false);
 
   const hasPaid = activeSite?.deploymentStatus === 'deployed';
+
+  const persistView = useCallback((view: 'generator' | 'dashboard' | 'editor', siteId?: string) => {
+    setCurrentView(view);
+    sessionStorage.setItem('appView', view);
+    if (siteId) {
+      sessionStorage.setItem('activeSiteId', siteId);
+    } else if (view === 'generator') {
+      sessionStorage.removeItem('activeSiteId');
+      sessionStorage.removeItem('pendingFormInputs');
+    }
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -59,12 +63,54 @@ const App: React.FC = () => {
     }
     setActiveSite(null);
     setActiveFormInputs(null);
-    setCurrentView('generator');
+    persistView('generator');
   };
+
+  // Session restore on mount
+  React.useEffect(() => {
+    if (authLoading) return;
+
+    const savedView = sessionStorage.getItem('appView') as 'generator' | 'dashboard' | 'editor' | null;
+    const savedSiteId = sessionStorage.getItem('activeSiteId');
+    const savedInputs = sessionStorage.getItem('pendingFormInputs');
+
+    if (savedView === 'editor' && savedSiteId) {
+      getSiteInstance(savedSiteId).then(site => {
+        if (site) {
+          setActiveSite(site);
+          if (site.formInputs) setActiveFormInputs(site.formInputs);
+          setCurrentView('editor');
+        }
+        setIsRestoring(false);
+      }).catch(() => setIsRestoring(false));
+    } else if (savedView === 'editor' && savedInputs) {
+      setIsRestoring(false);
+      try { handleGenerate(JSON.parse(savedInputs)); } catch { setIsRestoring(false); }
+    } else {
+      setIsRestoring(false);
+    }
+  }, [authLoading]);
+
+  // Auto-retry on visibility change (background generation protection)
+  React.useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === 'visible' && generationFailedRef.current) {
+        generationFailedRef.current = false;
+        const saved = sessionStorage.getItem('pendingFormInputs');
+        if (saved) {
+          try { handleGenerate(JSON.parse(saved)); } catch { persistView('generator'); }
+        } else {
+          persistView('generator');
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, []);
 
   // On-mount: load saved site from Supabase (if auth'd) or IndexedDB
   React.useEffect(() => {
-    if (authLoading) return; // Wait for auth to resolve
+    if (authLoading || isRestoring) return;
 
     const loadSavedSite = async () => {
       try {
@@ -74,7 +120,7 @@ const App: React.FC = () => {
           if (cloudSite) {
             setActiveSite(cloudSite);
             if (cloudSite.formInputs) setActiveFormInputs(cloudSite.formInputs);
-            setCurrentView('dashboard');
+            persistView('dashboard');
             setAppReady(true);
             return;
           }
@@ -87,7 +133,7 @@ const App: React.FC = () => {
             );
             setActiveSite(localSite);
             if (localSite.formInputs) setActiveFormInputs(localSite.formInputs);
-            setCurrentView('dashboard');
+            persistView('dashboard');
             setAppReady(true);
             return;
           }
@@ -99,16 +145,15 @@ const App: React.FC = () => {
     };
 
     loadSavedSite();
-  }, [authLoading, isAuthenticated, user]);
+  }, [authLoading, isAuthenticated, user, isRestoring]);
 
   // Auto-migrate site to new account after signup
   React.useEffect(() => {
     if (!authLoading && isAuthenticated && user && !wasAuthenticated.current && activeSite) {
-      // User just became authenticated and has a local site — migrate it
       migrateLocalToSupabase(activeSite, user.id)
         .then(() => {
           console.log('Auto-migrated site to new account');
-          setCurrentView('dashboard');
+          persistView('dashboard');
         })
         .catch(err => console.error('Auto-migration failed:', err));
     }
@@ -144,7 +189,7 @@ const App: React.FC = () => {
           }),
         }).catch(err => console.error('[FB CAPI] Client-side call failed:', err));
 
-        setCurrentView('editor');
+        persistView('editor');
         setDeploySource('payment');
         setDeploymentStatus('deploying');
         setDeploymentMessage('Payment Verified! Starting automated deployment...');
@@ -218,7 +263,7 @@ const App: React.FC = () => {
       // Clear URL params
       window.history.replaceState({}, '', window.location.pathname);
 
-      setCurrentView('dashboard');
+      persistView('dashboard');
       setDeploymentStatus('deploying');
       setDeploymentMessage('Domain payment verified! Registering your domain...');
 
@@ -268,6 +313,7 @@ const App: React.FC = () => {
       }
     }
 
+    sessionStorage.setItem('pendingFormInputs', JSON.stringify(newInputs));
     setIsLoading(true);
     try {
       // Capture lead data instantly (Fire and forget, but with error handling)
@@ -284,9 +330,14 @@ const App: React.FC = () => {
       };
       setActiveSite(instance);
       setActiveFormInputs(newInputs);
-      setCurrentView('editor');
+      persistView('editor', instance.id);
       await saveSite(instance, newInputs, user?.id ?? null);
+      sessionStorage.removeItem('pendingFormInputs');
     } catch (error: any) {
+      if (document.hidden && sessionStorage.getItem('pendingFormInputs')) {
+        generationFailedRef.current = true;
+        return;
+      }
       console.error("Generation failed:", error);
       if (error.message?.includes("Requested entity was not found") && window.aistudio) {
         alert("The selected model is not available with this API key. Please select a different key.");
@@ -295,7 +346,9 @@ const App: React.FC = () => {
         alert(`Generation Error: ${error.message || "Please check your API key and try again."}`);
       }
     } finally {
-      setIsLoading(false);
+      if (!generationFailedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -322,15 +375,15 @@ const App: React.FC = () => {
 
   const handleBackFromEditor = useCallback(() => {
     if (isAuthenticated && activeSite) {
-      setCurrentView('dashboard');
+      persistView('dashboard');
     } else {
       if (confirm("Go back to generator? Your current site is saved locally.")) {
         setActiveSite(null);
         setActiveFormInputs(null);
-        setCurrentView('generator');
+        persistView('generator');
       }
     }
-  }, [isAuthenticated, activeSite]);
+  }, [isAuthenticated, activeSite, persistView]);
 
   const handleManualSave = useCallback(async () => {
     if (!activeSite) return;
@@ -456,6 +509,14 @@ const App: React.FC = () => {
     }
   };
 
+  if (authLoading || isRestoring) {
+    return (
+      <div className="min-h-screen bg-[#05070A] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#05070A] font-light" style={{ fontFamily: '"Poppins", sans-serif' }}>
       {/* Generator Form View */}
@@ -473,7 +534,7 @@ const App: React.FC = () => {
               <div className="flex items-center gap-3">
                 {activeSite && (
                   <button
-                    onClick={() => setCurrentView('dashboard')}
+                    onClick={() => persistView('dashboard')}
                     className="flex items-center gap-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors"
                   >
                     Go to Dashboard
@@ -509,12 +570,12 @@ const App: React.FC = () => {
           site={activeSite}
           profile={profile}
           user={user}
-          onEditSite={() => setCurrentView('editor')}
+          onEditSite={() => persistView('editor')}
           onSignOut={handleSignOut}
           onCreateNew={() => {
             setActiveSite(null);
             setActiveFormInputs(null);
-            setCurrentView('generator');
+            persistView('generator');
           }}
         />
       )}
@@ -570,25 +631,20 @@ const App: React.FC = () => {
               </div>
             </div>
           ) : (
-            // Pre-payment toolbar: Red banner with instructions
-            <div className="sticky top-0 z-[110] bg-red-600 text-white px-4 py-2 md:py-3 shadow-lg flex items-center justify-between">
-              <div className="flex items-center gap-1 md:gap-2 flex-1 min-w-0">
-                <button
-                  onClick={handleBackFromEditor}
-                  className="p-1 hover:bg-white/10 rounded transition-colors shrink-0"
-                  title="Back"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <BannerText
-                  text="Tap to edit text & images, then deploy below"
-                />
-              </div>
+            // Pre-payment: minimal top bar with back button and save status
+            <div className="sticky top-0 z-[110] bg-[#0D1117] text-white px-4 py-3 shadow-lg flex items-center justify-between min-h-[56px] border-b border-white/10">
+              <button
+                onClick={handleBackFromEditor}
+                className="flex items-center gap-1 text-gray-400 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors"
+              >
+                <ChevronLeft size={16} />
+                <span className="hidden md:inline">Back</span>
+              </button>
 
-              <div className="flex items-center gap-2 shrink-0 ml-2">
-                <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full border border-white/20 whitespace-nowrap">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-full border border-white/10 whitespace-nowrap">
                   {saveStatus === 'saving' ? (
-                    <span className="flex items-center gap-1 text-blue-100">
+                    <span className="flex items-center gap-1 text-blue-300">
                       <Loader2 size={12} className="animate-spin" /> Saving
                     </span>
                   ) : saveStatus === 'saved' ? (
@@ -596,7 +652,7 @@ const App: React.FC = () => {
                       <CloudCheck size={14} /> Saved
                     </span>
                   ) : (
-                    <span className="opacity-80 uppercase">Editor</span>
+                    <span className="text-gray-500">Editor</span>
                   )}
                 </div>
               </div>
@@ -611,34 +667,12 @@ const App: React.FC = () => {
             />
           </main>
 
-          {/* Bottom deploy bar — only for unpaid users */}
+          {/* PrePaymentBanner — only for unpaid users */}
           {!hasPaid && (
-            <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100 p-3 md:p-4 shadow-[0_-8px_20px_rgba(0,0,0,0.05)]">
-              <div className="max-w-7xl mx-auto flex flex-col items-center gap-1">
-                {/* How It Works */}
-                <div className="w-full text-center">
-                  <p className="text-black text-xs md:text-sm font-bold uppercase tracking-widest mb-0.5">How It Works</p>
-                  <div className="flex flex-col md:flex-row md:justify-center gap-0 md:gap-3 text-black text-xs md:text-sm">
-                    <span><strong>1.</strong> Pay for website hosting</span>
-                    <span><strong>2.</strong> Create a quick account</span>
-                    <span><strong>3.</strong> Edit text, replace images & choose a custom domain</span>
-                  </div>
-                </div>
-                <div className="flex flex-col md:flex-row items-center justify-center gap-2 w-full">
-                  <p className="text-black font-bold text-xs md:text-sm">
-                    PAY ONLY £15/MONTH WEBSITE HOSTING TO HAVE YOUR CUSTOM SITE LIVE & ACTIVE
-                  </p>
-                  <button
-                    onClick={handleDeploy}
-                    disabled={deploymentStatus === 'deploying'}
-                    className="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all uppercase tracking-tighter disabled:opacity-50"
-                  >
-                    {deploymentStatus === 'deploying' ? <Loader2 className="animate-spin" size={18} /> : <Rocket size={18} />}
-                    Deploy Website
-                  </button>
-                </div>
-              </div>
-            </div>
+            <PrePaymentBanner
+              onDeploy={handleDeploy}
+              isDeploying={deploymentStatus === 'deploying'}
+            />
           )}
 
           {/* Deployment Status Overlay */}
@@ -703,7 +737,7 @@ const App: React.FC = () => {
                       <button
                         onClick={() => {
                           setDeploymentStatus('idle');
-                          setCurrentView('dashboard');
+                          persistView('dashboard');
                         }}
                         className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
                       >
