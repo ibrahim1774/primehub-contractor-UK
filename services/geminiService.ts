@@ -20,10 +20,10 @@ export const generateSiteContent = async (inputs: GeneratorInputs): Promise<Gene
   try {
     // 1. Prepare Prompts
     const textPrompt = SYSTEM_PROMPT
-      .replace("{industry}", inputs.industry)
-      .replace("{companyName}", inputs.companyName)
-      .replace("{location}", inputs.location)
-      .replace("{phone}", inputs.phone);
+      .replaceAll("{industry}", inputs.industry)
+      .replaceAll("{companyName}", inputs.companyName)
+      .replaceAll("{location}", inputs.location)
+      .replaceAll("{phone}", inputs.phone);
 
     const imagePromptHero = `Wide establishing shot of a professional ${inputs.industry} team at a job site in ${inputs.location}. Professional uniforms, cinematic lighting, 8k resolution. No text.`;
     const imagePromptValue = `Action shot of a ${inputs.industry} professional performing service. Close-up on tools and expert workmanship, natural lighting, high quality. No text.`;
