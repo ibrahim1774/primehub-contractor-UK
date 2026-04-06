@@ -101,7 +101,7 @@ const DomainManager: React.FC<DomainManagerProps> = ({ site }) => {
       : '';
 
     if (!projectName) {
-      setError('Your site must be deployed before purchasing a domain.');
+      setError('Your site must be published before purchasing a domain.');
       return;
     }
 

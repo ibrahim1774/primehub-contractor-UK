@@ -192,14 +192,14 @@ const App: React.FC = () => {
         persistView('editor');
         setDeploySource('payment');
         setDeploymentStatus('deploying');
-        setDeploymentMessage('Payment Verified! Starting automated deployment...');
+        setDeploymentMessage('Payment Verified! Starting automated publishing...');
 
         try {
           // 2. Load the latest site from storage
           const sites = await getAllSites();
 
           if (sites.length === 0) {
-            throw new Error("No saved site found to deploy. Please regenerate.");
+            throw new Error("No saved site found to publish. Please regenerate.");
           }
 
           // Sort by lastSaved desc to get the one they just made
@@ -210,12 +210,12 @@ const App: React.FC = () => {
           const { generateSlug } = await import('./services/urlService.js');
           const projectName = generateSlug(latestSite.data.contact.companyName);
 
-          setDeploymentMessage('Building and deploying your site to Vercel...');
+          setDeploymentMessage('Building and publishing your site...');
           const result = await deploySite(latestSite.data, projectName);
 
           // 7-second countdown
           for (let i = 7; i > 0; i--) {
-            setDeploymentMessage(`Deploying... ${i}s`);
+            setDeploymentMessage(`Publishing... ${i}s`);
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
 
@@ -243,7 +243,7 @@ const App: React.FC = () => {
         } catch (error: any) {
           console.error("Auto-deploy failed:", error);
           setDeploymentStatus('error');
-          setDeploymentMessage(error.message || 'Deployment failed after payment.');
+          setDeploymentMessage(error.message || 'Publishing failed after payment.');
         }
       }
     };
@@ -423,12 +423,12 @@ const App: React.FC = () => {
       const { generateSlug } = await import('./services/urlService.js');
       const projectName = generateSlug(activeSite.data.contact.companyName);
 
-      setDeploymentMessage('Building and deploying your site to Vercel...');
+      setDeploymentMessage('Building and publishing your site...');
       await deploySite(activeSite.data, projectName);
 
       // Countdown
       for (let i = 3; i > 0; i--) {
-        setDeploymentMessage(`Deploying... ${i}s`);
+        setDeploymentMessage(`Publishing... ${i}s`);
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
@@ -686,7 +686,7 @@ const App: React.FC = () => {
                       <Rocket className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500" size={32} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white mb-2">Deploying Site</h3>
+                      <h3 className="text-xl font-bold text-white mb-2">Publishing Site</h3>
                       <p className="text-gray-400">{deploymentMessage}</p>
                     </div>
                   </div>
@@ -760,7 +760,7 @@ const App: React.FC = () => {
                       <span className="text-red-500 text-4xl font-bold">!</span>
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white mb-2">Deployment Failed</h3>
+                      <h3 className="text-xl font-bold text-white mb-2">Publishing Failed</h3>
                       <p className="text-red-400 mb-6">{deploymentMessage}</p>
                       <button
                         onClick={() => setDeploymentStatus('idle')}

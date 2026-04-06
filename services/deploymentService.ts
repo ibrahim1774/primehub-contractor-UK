@@ -173,7 +173,7 @@ export const deploySite = async (data: GeneratedSiteData, projectName: string) =
 
     if (!response.ok) {
       const err = await response.json();
-      throw new Error(err.error || 'Deployment failed');
+      throw new Error(err.error || 'Publishing failed');
     }
 
     return await response.json();
