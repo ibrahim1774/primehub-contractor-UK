@@ -8,9 +8,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { companyName, siteId } = req.body || {};
+    const { companyName, siteId, plan = 'monthly' } = req.body || {};
 
-    console.log(`[Stripe Checkout] Creating session for: ${companyName || 'Unknown'} (Site: ${siteId || 'N/A'})`);
+    const isYearly = plan === 'yearly';
+    const unitAmount = isYearly ? 7400 : 1500; // £74/yr or £15/mo
+    const interval = isYearly ? 'year' : 'month';
+
+    console.log(`[Stripe Checkout] Creating session for: ${companyName || 'Unknown'} (Site: ${siteId || 'N/A'}, Plan: ${plan})`);
 
     const safeCompanyName = (companyName && companyName.trim()) || "Your Business";
 
@@ -25,9 +29,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             name: `Website Hosting: ${safeCompanyName}`,
                             description: `Professional hosting and maintenance for your custom generated website.`,
                         },
-                        unit_amount: 1500, // £15.00
+                        unit_amount: unitAmount,
                         recurring: {
-                            interval: 'month',
+                            interval: interval,
                         },
                     },
                     quantity: 1,
@@ -39,7 +43,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             cancel_url: `${req.headers.origin}`,
             metadata: {
                 companyName: safeCompanyName,
-                siteId: siteId || 'unknown'
+                siteId: siteId || 'unknown',
+                plan: plan
             },
             subscription_data: {
                 description: `Website Hosting for ${safeCompanyName}`,

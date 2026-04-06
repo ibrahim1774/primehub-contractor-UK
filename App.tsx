@@ -455,7 +455,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeploy = async () => {
+  const handleDeploy = async (plan: 'monthly' | 'yearly' = 'monthly') => {
     if (!activeSite) return;
 
     // 1. Save to IndexedDB + Supabase one last time before redirect
@@ -480,7 +480,8 @@ const App: React.FC = () => {
         },
         body: JSON.stringify({
           companyName: activeSite.data.contact.companyName,
-          siteId: activeSite.id
+          siteId: activeSite.id,
+          plan: plan
         }),
       });
 
