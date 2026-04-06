@@ -66,6 +66,17 @@ const App: React.FC = () => {
     persistView('generator');
   };
 
+  // Reset deploying state when returning from Stripe via browser back (bfcache restore)
+  React.useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted && !window.location.search.includes('payment=success')) {
+        setDeploymentStatus('idle');
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   // Session restore on mount
   React.useEffect(() => {
     if (authLoading) return;
