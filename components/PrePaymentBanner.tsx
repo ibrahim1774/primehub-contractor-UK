@@ -15,7 +15,7 @@ const PrePaymentBanner: React.FC<PrePaymentBannerProps> = ({ onDeploy, isDeployi
 
   const displayIndustry = industry || 'home service';
 
-  const priceLabel = pricingPlan === 'monthly' ? '£15/mo' : '£74/yr';
+  const priceLabel = pricingPlan === 'monthly' ? '£15/mo' : '£108/yr';
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 500);
@@ -55,7 +55,7 @@ const PrePaymentBanner: React.FC<PrePaymentBannerProps> = ({ onDeploy, isDeployi
       >
         Yearly
         <span className="bg-green-500/20 text-green-400 text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-          Save 59%
+          Save 40%
         </span>
       </button>
     </div>
@@ -90,7 +90,7 @@ const PrePaymentBanner: React.FC<PrePaymentBannerProps> = ({ onDeploy, isDeployi
             <p className="text-gray-300 text-sm leading-relaxed">
               Just pay for hosting—it's <span className="text-white font-bold">{priceLabel}</span>
               {pricingPlan === 'yearly' && (
-                <span className="text-green-400 text-xs ml-1">(save 59%)</span>
+                <span className="text-green-400 text-xs ml-1">(save 40%)</span>
               )}
               . You can make an account after publishing the site and change the text and images as well.
             </p>
@@ -163,7 +163,7 @@ const PrePaymentBanner: React.FC<PrePaymentBannerProps> = ({ onDeploy, isDeployi
                 {pricingPlan === 'monthly' ? 'Just £15/mo' : (
                   <>
                     <span className="line-through text-gray-500 text-lg">£180/yr</span>{' '}
-                    £74/yr
+                    £108/yr
                   </>
                 )}
               </span>
@@ -226,7 +226,7 @@ const PrePaymentBanner: React.FC<PrePaymentBannerProps> = ({ onDeploy, isDeployi
                 {pricingPlan === 'monthly' ? '£15/mo' : (
                   <>
                     <span className="line-through text-gray-500 text-xs mr-1">£180/yr</span>
-                    £74/yr
+                    £108/yr
                   </>
                 )} —{' '}
                 <span className="text-gray-400 font-normal text-xs" style={{ fontFamily: '"DM Sans", sans-serif' }}>
